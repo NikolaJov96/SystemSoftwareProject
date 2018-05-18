@@ -6,4 +6,4 @@ typedef struct
     ARGS_VERB verb;
     char input_file_name[256];
     char output_file_name[256];
-} Arguments;
+} AsmArgs;

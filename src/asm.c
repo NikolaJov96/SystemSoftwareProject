@@ -8,7 +8,7 @@
 #include "prog.h"
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
-    Arguments* args = state->input;
+    AsmArgs* args = state->input;
     FILE* file;
     // printf("arg: '%d' '%s'\n", key, arg);
     switch (key) {
@@ -43,7 +43,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     return 0;
 }
 
-static void parse_args(int argc, char** argv, Arguments* args)
+static void parse_args(int argc, char** argv, AsmArgs* args)
 {
     const char* argp_program_version = "asm 1.0";
     const char* argp_program_bug_address = "jovanovicn.96@gmail.com";
@@ -61,7 +61,7 @@ static void parse_args(int argc, char** argv, Arguments* args)
 
 int main(int argc, char** argv)
 {
-    Arguments args;
+    AsmArgs args;
     FILE* input_file;
     FILE* output_file;
     Program* prog = 0;
@@ -127,4 +127,3 @@ int main(int argc, char** argv)
 
     return 0;
 }
-
