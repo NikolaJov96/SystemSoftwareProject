@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 
     if (args.error != 0)
     {
-        printf("Invalid arguments!\n");
+        if (args.verb != ARGS_VERB_SILENT) printf("Invalid arguments!\n");
         exit(1);
     }
 
