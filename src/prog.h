@@ -1,3 +1,4 @@
+
 typedef struct
 {
     struct SymbolTableNode* next;
@@ -9,6 +10,7 @@ typedef struct
     SymbolTableNode* symbol_table_tail;
 } Program;
 
+typedef enum { SEC_NONE, SEC_TEXT, SEC_DATA, SEC_RODATA, SEC_BSS, SEC_END } SECTION;
 typedef enum { PROG_RET_SUCCESS, PROG_RET_INVALID_PATH, PROG_ERT_INVALID_PROGRAM } PROG_RET;
 
 Program* new_program();

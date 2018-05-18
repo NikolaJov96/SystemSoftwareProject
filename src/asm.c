@@ -2,61 +2,59 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <argp.h>
 #include <string.h>
 
 #include "prog.h"
 
-static error_t parse_opt(int key, char *arg, struct argp_state *state) {
-    AsmArgs* args = state->input;
-    FILE* file;
-    // printf("arg: '%d' '%s'\n", key, arg);
-    switch (key) {
-    case ARGP_KEY_INIT:
-        args->verb = ARGS_VERB_NORMAL;
-        args->input_file_name[0] = 0;
-        args->output_file_name[0] = 0;
-        break;
-    case 'v':
-        if (args->verb != ARGS_VERB_NORMAL) return ARGP_ERR_UNKNOWN;
-        else args->verb = ARGS_VERB_VERBOSE;
-        break;
-    case 's': 
-        if (args->verb != ARGS_VERB_NORMAL) return ARGP_ERR_UNKNOWN;
-        else args->verb = ARGS_VERB_SILENT;
-        break;
-    case ARGP_KEY_ARG:
-        if (args->input_file_name[0] != 0 && args->output_file_name[0] != 0) return ARGP_ERR_UNKNOWN;
-        if (args->input_file_name[0] == 0) strcpy(args->input_file_name, arg);
-        else strcpy(args->output_file_name, arg);
-        break;
-    case ARGP_KEY_END:
-        if (args->input_file_name[0] == 0 || args->output_file_name[0] == 0) 
+void preprocess_line(char* line)
+{
+    int len, i, j, acc;
+    len = strlen(line);
+    if (len == 0) return;
+
+    if (line[len - 1] == '\n') line[--len] = 0;
+    for (i = 0; i < len; i++) if (line[i] == '\t') line[i] = ' ';
+    
+    acc = 0;
+    for (i = len - 1; i >= 0; i--)
+    {
+        if (line[i] == ' ') acc++;
+        else 
         {
-            argp_error(state, "Too few arguments");
-            return ARGP_ERR_UNKNOWN;
+            if (acc > 1)
+            {
+                for (j = i + 2 + acc - 1; j < len; j++) line[j - acc + 1] = line[j];
+                len -= (acc - 1);
+                line[len] = 0;
+            }
+            acc = 0;
         }
-        break;
-    default: 
-        return ARGP_ERR_UNKNOWN;
     }
+    
+    if (line[len - 1] == ' ') line[--len] = 0;
+    if (line[0] == ' ')
+    {
+        for (i = 0; i < len; i++) line[i] = line[i+1];
+        len--;
+    }
+    
+    for (i = 0; i < len; i++) if (line[i] >= 'A' && line[i] <= 'Z') line[i] += 'a' - 'A';
+}
+
+int skip_line(char* line)
+{
+    if (line[0] == 0) return 1;
     return 0;
 }
 
-static void parse_args(int argc, char** argv, AsmArgs* args)
+SECTION parse_section(char* line)
 {
-    const char* argp_program_version = "asm 1.0";
-    const char* argp_program_bug_address = "jovanovicn.96@gmail.com";
-    static char* doc = "Your program description.";
-    static char* args_doc = "INPUTFILE OUTPUTFILE";
-    static struct argp_option options[] = { 
-        { "silent", 's', 0, 0, "Do not print anything."},
-        { "verbose", 'v', 0, 0, "Print detailed info about progress."},
-        { 0 } 
-    };
-    struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
-
-    argp_parse(&argp, argc, argv, 0, 0, args);
+    if (strcmp(line, ".text") == 0) return SEC_TEXT;
+    if (strcmp(line, ".data") == 0) return SEC_DATA;
+    if (strcmp(line, ".rodata") == 0) return SEC_RODATA;
+    if (strcmp(line, ".bss") == 0) return SEC_BSS;
+    if (strcmp(line, ".end") == 0) return SEC_END;
+    return SEC_NONE;
 }
 
 int main(int argc, char** argv)
@@ -65,8 +63,9 @@ int main(int argc, char** argv)
     FILE* input_file;
     FILE* output_file;
     Program* prog = 0;
-    int line_num = 0;
+    int line_num;
     char line[256];
+    SECTION curr_section = SEC_NONE;
 
     parse_args(argc, argv, &args);
     
@@ -102,10 +101,12 @@ int main(int argc, char** argv)
     }
     fclose(output_file);
 
-    if (args.verb == ARGS_VERB_VERBOSE) printf("Assembling started.\n");
-
     prog =  new_program();
+
+    // first pass
+    if (args.verb == ARGS_VERB_VERBOSE) printf("First pass started.\n");
     input_file = fopen(args.input_file_name, "r");
+    line_num = 0;
 
     while (fgets(line, sizeof(line), input_file)) 
     {
@@ -120,10 +121,54 @@ int main(int argc, char** argv)
             fclose(input_file);
             exit(1);
         }
-        printf("%s", line); 
+        preprocess_line(line);
+        
+        if (skip_line(line)) continue;
+
+        SECTION new_sec = parse_section(line);
+        if (new_sec != SEC_NONE)
+        {
+            if (args.verb == ARGS_VERB_VERBOSE) 
+            {
+                switch (new_sec)
+                {
+                case SEC_TEXT: printf("  Section: .text\n"); break;
+                case SEC_DATA: printf("  Section: .data\n"); break;
+                case SEC_RODATA: printf("  Section: .rodata\n"); break;
+                case SEC_BSS: printf("  Section: .bss\n"); break;
+                case SEC_END: printf("  Section: .end\n"); break;
+                }
+            }
+            curr_section = new_sec;
+            if (new_sec == SEC_END) break;
+            continue;
+        }
+
+        if (curr_section == SEC_NONE)
+        {
+            if (args.verb != ARGS_VERB_SILENT) 
+            {
+                printf("Unknown section on line %d : %s\n", line_num, line);
+            }
+            fclose(input_file);
+            exit(1);
+        }
     }
 
     fclose(input_file);
+
+    // second pass
+    if (args.verb == ARGS_VERB_VERBOSE) printf("Second pass started.\n");
+    input_file = fopen(args.input_file_name, "r");
+    line_num = 0;
+
+    while (fgets(line, sizeof(line), input_file)) 
+    {
+        line_num++;
+    }
+
+    fclose(input_file);
+    if (args.verb == ARGS_VERB_VERBOSE) printf("Assembly finished.\n");
 
     switch (prog_store(prog, args.output_file_name))
     {
