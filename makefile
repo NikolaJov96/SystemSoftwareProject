@@ -4,9 +4,9 @@ SDIR=src
 ODIR=obj
 
 PROG_DEPS_=prog.h
-ASM_DEPS=$(patsubst %,$(SDIR)/%,$(PROG_DEPS_))
+PROG_DEPS=$(patsubst %,$(SDIR)/%,$(PROG_DEPS_))
 
-ASM_DEPS_=
+ASM_DEPS_=asm.h
 ASM_DEPS=$(patsubst %,$(SDIR)/%,$(ASM_DEPS_))
 ASM_OBJ_=prog.o asm.o
 ASM_OBJ=$(patsubst %,$(ODIR)/%,$(ASM_OBJ_))

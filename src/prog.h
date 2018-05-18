@@ -11,5 +11,6 @@ typedef struct
 
 typedef enum { PROG_RET_SUCCESS, PROG_RET_INVALID_PATH, PROG_ERT_INVALID_PROGRAM } PROG_RET;
 
+Program* new_program();
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);
