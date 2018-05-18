@@ -65,6 +65,8 @@ int main(int argc, char** argv)
     FILE* input_file;
     FILE* output_file;
     Program* prog = 0;
+    int line_num = 0;
+    char line[256];
 
     parse_args(argc, argv, &args);
     
@@ -105,7 +107,21 @@ int main(int argc, char** argv)
     prog =  new_program();
     input_file = fopen(args.input_file_name, "r");
 
-    //getline(input_file);
+    while (fgets(line, sizeof(line), input_file)) 
+    {
+        line_num++;
+        if (strlen(line) >= sizeof(line) - 1)
+        {
+            if (args.verb != ARGS_VERB_SILENT) 
+            {
+                line[40] = 0;
+                printf("Line %d too long : %s...\n", line_num, line);
+            }
+            fclose(input_file);
+            exit(1);
+        }
+        printf("%s", line); 
+    }
 
     fclose(input_file);
 
