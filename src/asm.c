@@ -142,6 +142,9 @@ int main(int argc, char** argv)
     {
         SECTION new_sec;
         char label[50];
+        Instruction ins;
+        Directive dir;
+        int ret;
 
         line_num++;
         if (strlen(line) >= sizeof(line) - 1)
@@ -232,7 +235,23 @@ int main(int argc, char** argv)
         }
 
         // parse instruction just to check if it has length of 2 or 4
-        // acc_offset += 2
+        if (ins_parse(&ins, line))
+        {
+            // acc_offset += 2
+        }
+        else if (dir_parse(&dir, line))
+        {
+            // acc_offset += 2
+        }
+        else
+        {
+            if (args.verb != ARGS_VERB_SILENT) 
+            {
+                printf("Invalid line %d : %s\n", line_num, line);
+            }
+            fclose(input_file);
+            exit(1);
+        }
     }
 
     fclose(input_file);
