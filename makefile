@@ -8,7 +8,7 @@ PROG_DEPS=$(patsubst %,$(SDIR)/%,$(PROG_DEPS_))
 
 ASM_DEPS_=asm.h
 ASM_DEPS=$(patsubst %,$(SDIR)/%,$(ASM_DEPS_))
-ASM_OBJ_=prog.o asm_args.o asm.o
+ASM_OBJ_=prog.o asm_args.o asm_dir_ins.o asm.o
 ASM_OBJ=$(patsubst %,$(ODIR)/%,$(ASM_OBJ_))
 
 EMU_DEPS_=
@@ -28,6 +28,10 @@ emu: $(EMU_OBJ)
 	$(CC) -o $@ $^
 
 $(ODIR)/asm.o: $(SDIR)/asm.c $(ASM_DEPS)
+	mkdir -p $(ODIR)
+	$(CC) -c -o $@ $<
+
+$(ODIR)/asm_dir_ins.o: $(SDIR)/asm_dir_ins.c $(ASM_DEPS)
 	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $<
 

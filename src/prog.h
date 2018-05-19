@@ -1,4 +1,5 @@
-
+#ifndef PROG_H
+#define PROG_H
 
 typedef enum { SEC_NONE, SEC_TEXT, SEC_DATA, SEC_RODATA, SEC_BSS, SEC_END } SECTION;
 typedef enum { SYM_SECTION, SYM_LABEL } SYM_TYPE;
@@ -28,3 +29,5 @@ void prog_free(Program** prog);
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset);
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);
+
+#endif  // PROG_H

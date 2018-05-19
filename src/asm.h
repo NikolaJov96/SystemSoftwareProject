@@ -1,3 +1,6 @@
+#ifndef ASM_H
+#define ASM_H
+
 #include <argp.h>
 
 typedef enum { ARGS_VERB_SILENT, ARGS_VERB_NORMAL, ARGS_VERB_VERBOSE } ARGS_VERB;
@@ -39,3 +42,9 @@ typedef struct Directive
 } Directive;
 
 void parse_args(int argc, char** argv, AsmArgs* args);
+
+int ins_parse(Instruction* ins, char* line);
+int dir_parse(Directive* dir, char* line);
+void dir_arg_free(Directive* dir);
+
+#endif  // ASM_H
