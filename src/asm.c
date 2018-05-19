@@ -57,17 +57,33 @@ SECTION parse_section(char* line)
     return SEC_NONE;
 }
 
-void get_label(char* line, char* label)
+int get_label(char* line, char* label)
 {
     int i;
     label[0] = 0;
-    for (i = 0; i < 50 && line[i] != 0; i++)
+    for (i = 0; line[i] != 0; i++)
     {
         if (line[i] >= 'a' && line[i] <= 'z') label[i] = line[i];
-        else if (line[i] == ':') return;
+        else if (line[i] == ':') 
+        {
+            int ind;
+            if (i >= 50) return 0;
+
+            i++;
+            if (line[i] == ' ') i++;
+            ind = i;
+            while (line[ind])
+            {
+                line[ind - i] = line[ind];
+                ind++;
+            }
+            line[ind - i] = 0;
+            return 1;
+        }
         else break;
     }
     label[0] = 0;
+    return 1;
 }
 
 int main(int argc, char** argv)
@@ -76,7 +92,7 @@ int main(int argc, char** argv)
     FILE* input_file;
     FILE* output_file;
     Program* prog = 0;
-    int line_num;
+    int line_num, acc_offset;
     char line[256];
     SECTION curr_section = SEC_NONE;
     int section_used[6] = { 1, 0, 0, 0, 0, 0 };
@@ -120,6 +136,7 @@ int main(int argc, char** argv)
     if (args.verb == ARGS_VERB_VERBOSE) printf("First pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
+    acc_offset = 0;
 
     while (fgets(line, sizeof(line), input_file)) 
     {
@@ -167,7 +184,8 @@ int main(int argc, char** argv)
             }
             curr_section = new_sec;
             if (new_sec == SEC_END) break;
-            if (!prog_add_sym(prog, SYM_SECTION, line))
+            acc_offset = 0;
+            if (!prog_add_sym(prog, SYM_SECTION, line, acc_offset))
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
@@ -189,10 +207,19 @@ int main(int argc, char** argv)
             exit(1);
         }
 
-        get_label(line, label);
+        if (!get_label(line, label))
+        {
+            if (args.verb != ARGS_VERB_SILENT) 
+            {
+                line[40] = 0;
+                printf("Invalid label, line %d : %s...\n", line_num, line);
+            }
+            fclose(input_file);
+            exit(1);
+        }
         if (label[0] != 0)
         {
-            if (!prog_add_sym(prog, SYM_LABEL, label))
+            if (!prog_add_sym(prog, SYM_LABEL, label, acc_offset))
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
@@ -203,6 +230,9 @@ int main(int argc, char** argv)
             }
             else if (args.verb == ARGS_VERB_VERBOSE) printf("  Label: %s\n", label);
         }
+
+        // parse instruction just to check if it has length of 2 or 4
+        // acc_offset += 2
     }
 
     fclose(input_file);

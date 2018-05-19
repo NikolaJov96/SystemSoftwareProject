@@ -12,7 +12,7 @@ Program* new_program()
     prog->symbol_co = 0;
 }
 
-int prog_add_sym(Program* prog, SYM_TYPE type, char* name)
+int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
 {
     SymbolTableNode* new_node;
     if (!prog || !name || strlen(name) >= 50) return 0;
@@ -20,6 +20,9 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name)
     new_node->type = type;
     strcpy(new_node->name, name);
     new_node->sym_id = ++prog->symbol_co;
+    new_node->section_id = ( type == SYM_SECTION ? new_node->sym_id : prog->symbol_table_tail->sym_id );
+    new_node->offset = offset;
+    new_node->reach = REACH_LOCAL;
     new_node->next = 0;
     if (!prog->symbol_table_head)
     {
@@ -59,7 +62,8 @@ PROG_RET prog_store(Program* prog, char* path)
 
     for (node = prog->symbol_table_head; node; node = node->next)
     {
-        fprintf(file, "%d %s %d\n", node->type, node->name, node->sym_id);
+        fprintf(file, "%d %s %d %d %d %d\n",
+            node->type, node->name, node->sym_id, node->section_id, node->offset, node->reach);
     }
 
     fclose(file);
