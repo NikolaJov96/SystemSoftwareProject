@@ -29,8 +29,14 @@ void prog_free(Program** prog)
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
 {
     SymbolTableNode* new_node;
-    if (!prog || !name || strlen(name) >= 50) return 0;
-    // check for already existing symbols
+    SymbolTableNode* temp_node = prog->symbol_table_head;
+    if (!prog || !name || strlen(name) >= 50) return 1;
+    while (temp_node)
+    {
+        if (strcmp(temp_node->name, name) == 0) return 2;
+        temp_node = temp_node->next;
+    }
+
     new_node = malloc(sizeof(SymbolTableNode));
     new_node->type = type;
     strcpy(new_node->name, name);
@@ -49,6 +55,7 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
         prog->symbol_table_tail->next = new_node;
         prog->symbol_table_tail = new_node;
     }
+    return 0;
 }
 
 PROG_RET prog_load(Program** prog, char* path)

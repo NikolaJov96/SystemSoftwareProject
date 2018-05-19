@@ -190,11 +190,13 @@ int main(int argc, char** argv)
             curr_section = new_sec;
             if (new_sec == SEC_END) break;
             acc_offset = 0;
-            if (!prog_add_sym(prog, SYM_SECTION, line, acc_offset))
+            ret = prog_add_sym(prog, SYM_SECTION, line, acc_offset);
+            if (ret != 0)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
-                    printf("Invalid label, line %d : %s\n", line_num, line);
+                    if (ret == 1) printf("Invalid label, line %d : %s\n", line_num, line);
+                    else if (ret == 2) printf("Label already defined, line %d : %s\n", line_num, line);
                 }
                 fclose(input_file);
                 exit(1);
@@ -224,11 +226,13 @@ int main(int argc, char** argv)
         }
         if (label[0] != 0)
         {
-            if (!prog_add_sym(prog, SYM_LABEL, label, acc_offset))
+            ret = prog_add_sym(prog, SYM_LABEL, label, acc_offset);
+            if (ret != 0)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
-                    printf("Invalid label, line %d : %s\n", line_num, line);
+                    if (ret == 1) printf("Invalid label, line %d : %s\n", line_num, line);
+                    else if (ret == 2) printf("Label already defined, line %d : %s\n", line_num, line);
                 }
                 fclose(input_file);
                 exit(1);
