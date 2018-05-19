@@ -235,22 +235,41 @@ int main(int argc, char** argv)
         }
 
         // parse instruction just to check if it has length of 2 or 4
-        if (ins_parse(&ins, line))
+        ret = ins_parse(&ins, line);
+        if (ret == 0)
         {
-            // acc_offset += 2
+            // acc_offest += 2/4;
         }
-        else if (dir_parse(&dir, line))
-        {
-            // acc_offset += 2
-        }
-        else
+        else if (ret != 2)
         {
             if (args.verb != ARGS_VERB_SILENT) 
             {
-                printf("Invalid line %d : %s\n", line_num, line);
+                switch (ret)
+                {
+                case 1: printf("Fatal error, line %d : %s\n", line_num, line); break;
+                case 3: printf("Invalid first operand, line %d : %s\n", line_num, line); break;
+                case 4: printf("Invalid second operand, line %d : %s\n", line_num, line); break;
+                }
             }
             fclose(input_file);
             exit(1);
+        }
+
+        if (ret == 2)
+        {
+            if (dir_parse(&dir, line))
+            {
+                // acc_offset += 2
+            }
+            else
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Invalid line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
         }
     }
 
