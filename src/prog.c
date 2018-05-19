@@ -21,7 +21,6 @@ void prog_free(Program** prog)
         (*prog)->symbol_table_head = (*prog)->symbol_table_head->next;
         free(del);
     }
-    (*prog)->symbol_table_head = 0;
     (*prog)->symbol_table_tail = 0;
     free(*prog);
     *prog = 0;
