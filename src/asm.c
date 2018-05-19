@@ -16,10 +16,10 @@ void preprocess_line(char* line)
     for (i = 0; i < len; i++) if (line[i] == '\t') line[i] = ' ';
     
     acc = 0;
-    for (i = len - 1; i >= 0; i--)
+    for (i = len - 1; i >= -1; i--)
     {
-        if (line[i] == ' ') acc++;
-        else 
+        if (i >= 0 && line[i] == ' ') acc++;
+        if (i < 0 || line[i] != ' ')
         {
             if (acc > 1)
             {
@@ -66,6 +66,7 @@ int main(int argc, char** argv)
     int line_num;
     char line[256];
     SECTION curr_section = SEC_NONE;
+    int section_used[6] = { 1, 0, 0, 0, 0, 0 };
 
     parse_args(argc, argv, &args);
     
@@ -101,9 +102,8 @@ int main(int argc, char** argv)
     }
     fclose(output_file);
 
-    prog =  new_program();
+    prog = new_program();
 
-    // first pass
     if (args.verb == ARGS_VERB_VERBOSE) printf("First pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
@@ -128,6 +128,15 @@ int main(int argc, char** argv)
         SECTION new_sec = parse_section(line);
         if (new_sec != SEC_NONE)
         {
+            if (section_used[new_sec]++ > 0)
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Already used section, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
             if (args.verb == ARGS_VERB_VERBOSE) 
             {
                 switch (new_sec)
@@ -157,7 +166,6 @@ int main(int argc, char** argv)
 
     fclose(input_file);
 
-    // second pass
     if (args.verb == ARGS_VERB_VERBOSE) printf("Second pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
