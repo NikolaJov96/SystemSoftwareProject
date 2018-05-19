@@ -11,6 +11,8 @@ int check_reserved(char* word)
     if (strcmp(word, "add") == 0) return 1;
     
     if (strcmp(word, "sp") == 0) return 1;
+    if (strcmp(word, "pc") == 0) return 1;
+    if (strcmp(word, "psw") == 0) return 1;
     return 0;
 }
 
@@ -242,15 +244,29 @@ int main(int argc, char** argv)
             else if (args.verb == ARGS_VERB_VERBOSE) printf("  Label: %s\n", label);
         }
 
+        if (line[0] == 0) continue;
+
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
+            int op1_len = ins_len(ins.op1_addr);
+            int op2_len = 0;
+            if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
+
             /*printf("Ins: %d %d %d %d %d (%s) %d %d %d (%s)\n",
                 ins.cond, ins.ins, 
                 ins.op1_addr, ins.op1_reg, ins.op1_val, ins.op1_label,
                 ins.op2_addr, ins.op2_reg, ins.op2_val, ins.op2_label);*/
-            
-            // acc_offest += 2/4;
+            if (op1_len == 4 && op2_len == 4)
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Cannot use two immediate values in one instruction, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
+            acc_offset += ( op1_len > op2_len ? op1_len : op2_len );
         }
         else if (ret != 2)
         {
@@ -272,6 +288,7 @@ int main(int argc, char** argv)
             if (dir_parse(&dir, line))
             {
                 // acc_offset += 2
+                // free dir args
             }
             else
             {

@@ -87,8 +87,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             while (str[i] >= 'a' && str[i] <= 'z') i++;
             if (i < 50 && (str[i] == ' ' || str[i] == 0))
             {
-                i++;
-                *start_ind += i - 1;
+                *start_ind += i;
                 switch (status)
                 {
                 case 0: *adr = ADDR_MEMDIR; break;
@@ -97,22 +96,6 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
                 }
                 memcpy(label, str + start, i - start);
                 label[i - start] = 0;
-                return 1;
-            }
-        }
-    }
-    {
-        int i = 0;
-        if (str[i] >= 'a' && str[i] <= 'z')
-        {
-            while (str[i] >= 'a' && str[i] <= 'z') i++;
-            if (i < 50 && (str[i] == ' ' || str[i] == 0))
-            {
-                i++;
-                *start_ind += i - 1;
-                *adr = ADDR_IMM;
-                memcpy(label, str + 1, i - 2);
-                label[i] = 0;
                 if (!check_reserved(label)) return 1;
             }
         }
@@ -123,19 +106,12 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
         if (str[i] == 'r')
         {
             i++;
-            if (str[i] >= '0' && str[i] <= '9')
+            if (str[i] >= '0' && str[i] <= '7')
             {
                 *reg = str[i] - '0';
                 i++;
                 if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
                 else if (str[i] == '[') { i++; status = 2; }
-                else if (str[i] >= '0' && str[i] <= '9')
-                {
-                    *reg = *reg * 10 + str[i] - '0'; 
-                    i++; 
-                    if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
-                    else if (str[i] == '[')  { i++; status = 2; }
-                }
             }
         }
         else if (str[i] == 'p')
@@ -152,8 +128,13 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             {
                 *reg = 8;
                 i += 2;
-                if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
-                else if (str[i] == '[')  { i++; status = 2; }
+                if (str[i] == ' ' || str[i] == 0) 
+                { 
+                    i++; 
+                    *start_ind += i - 1;
+                    *adr = ADDR_PSW;
+                    return 1;
+                }
             }
         }
         else if (str[i] == 's')
@@ -263,14 +244,15 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
         /*case INS_ADD, INS_SUB, INS_MUL, INS_DIV, INS_CMP, INS_AND, INS_OR, INS_NOT, INS_TEST,
     INS_PUSH, INS_POP, INS_CALL, INS_IRET, INS_MOV, INS_SHL, INS_SHR, INS_JMP, INS_RET */
     }
+    return 0;
 }
 
-int ins_len(INSTRUCTION ins)
+int ins_len(ADDRESSING addr)
 {
-    switch (ins)
+    switch (addr)
     {
-    /*case INS_ADD, INS_SUB, INS_MUL, INS_DIV, INS_CMP, INS_AND, INS_OR, INS_NOT, INS_TEST,
-    INS_PUSH, INS_POP, INS_CALL, INS_IRET, INS_MOV, INS_SHL, INS_SHR, INS_JMP, INS_RET */
+    case ADDR_PSW: case ADDR_REGDIR: return 2; break;
+    case ADDR_IMM: case ADDR_MEMDIR: case ADDR_REGINDDISP: case ADDR_PCREL: return 4; break;
     }
 }
 
