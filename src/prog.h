@@ -24,6 +24,7 @@ typedef struct Program
 } Program;
 
 Program* new_program();
+void prog_free(Program** prog);
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset);
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);

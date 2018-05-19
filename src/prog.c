@@ -12,6 +12,21 @@ Program* new_program()
     prog->symbol_co = 0;
 }
 
+void prog_free(Program** prog)
+{
+    SymbolTableNode* del;
+    while ((*prog)->symbol_table_head)
+    {
+        del = (*prog)->symbol_table_head;
+        (*prog)->symbol_table_head = (*prog)->symbol_table_head->next;
+        free(del);
+    }
+    (*prog)->symbol_table_head = 0;
+    (*prog)->symbol_table_tail = 0;
+    free(*prog);
+    *prog = 0;
+}
+
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
 {
     SymbolTableNode* new_node;

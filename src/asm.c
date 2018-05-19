@@ -262,8 +262,7 @@ int main(int argc, char** argv)
         break;
     }
 
-    free(prog);
-    prog = 0;
+    prog_free(&prog);
 
     return 0;
 }
