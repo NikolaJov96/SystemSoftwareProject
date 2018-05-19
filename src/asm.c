@@ -6,6 +6,14 @@
 
 #include "prog.h"
 
+int check_reserved(char* word)
+{
+    if (strcmp(word, "add") == 0) return 1;
+    
+    if (strcmp(word, "sp") == 0) return 1;
+    return 0;
+}
+
 void preprocess_line(char* line)
 {
     int len, i, j, acc;
@@ -234,10 +242,14 @@ int main(int argc, char** argv)
             else if (args.verb == ARGS_VERB_VERBOSE) printf("  Label: %s\n", label);
         }
 
-        // parse instruction just to check if it has length of 2 or 4
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
+            /*printf("Ins: %d %d %d %d %d (%s) %d %d %d (%s)\n",
+                ins.cond, ins.ins, 
+                ins.op1_addr, ins.op1_reg, ins.op1_val, ins.op1_label,
+                ins.op2_addr, ins.op2_reg, ins.op2_val, ins.op2_label);*/
+            
             // acc_offest += 2/4;
         }
         else if (ret != 2)
@@ -246,7 +258,7 @@ int main(int argc, char** argv)
             {
                 switch (ret)
                 {
-                case 1: printf("Fatal error, line %d : %s\n", line_num, line); break;
+                case 1: case 5: printf("Fatal error, line %d : %s\n", line_num, line); break;
                 case 3: printf("Invalid first operand, line %d : %s\n", line_num, line); break;
                 case 4: printf("Invalid second operand, line %d : %s\n", line_num, line); break;
                 }
