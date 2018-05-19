@@ -6,16 +6,6 @@
 
 #include "prog.h"
 
-int check_reserved(char* word)
-{
-    if (strcmp(word, "add") == 0) return 1;
-    
-    if (strcmp(word, "sp") == 0) return 1;
-    if (strcmp(word, "pc") == 0) return 1;
-    if (strcmp(word, "psw") == 0) return 1;
-    return 0;
-}
-
 void preprocess_line(char* line)
 {
     int len, i, j, acc;
@@ -78,6 +68,8 @@ int get_label(char* line, char* label)
         {
             int ind;
             if (i >= 50) return 0;
+
+            label[i] = 0;
 
             i++;
             if (line[i] == ' ') i++;
@@ -252,11 +244,6 @@ int main(int argc, char** argv)
             int op1_len = ins_len(ins.op1_addr);
             int op2_len = 0;
             if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
-
-            /*printf("Ins: %d %d %d %d %d (%s) %d %d %d (%s)\n",
-                ins.cond, ins.ins, 
-                ins.op1_addr, ins.op1_reg, ins.op1_val, ins.op1_label,
-                ins.op2_addr, ins.op2_reg, ins.op2_val, ins.op2_label);*/
             if (op1_len == 4 && op2_len == 4)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
@@ -274,7 +261,7 @@ int main(int argc, char** argv)
             {
                 switch (ret)
                 {
-                case 1: case 5: printf("Fatal error, line %d : %s\n", line_num, line); break;
+                case 1: case 5: printf("Fatal instruction error, line %d : %s\n", line_num, line); break;
                 case 3: printf("Invalid first operand, line %d : %s\n", line_num, line); break;
                 case 4: printf("Invalid second operand, line %d : %s\n", line_num, line); break;
                 }
@@ -285,20 +272,32 @@ int main(int argc, char** argv)
 
         if (ret == 2)
         {
-            if (dir_parse(&dir, line))
+            ret = dir_parse(&dir, line);
+            if (ret == 0)
             {
-                // acc_offset += 2
-                // free dir args
+                int dir_args_len = dir_len(&dir, acc_offset);
+                if (dir_args_len == -1)
+                {
+                    if (args.verb != ARGS_VERB_SILENT) 
+                    {
+                        printf("Invalid use of directive, line %d : %s\n", line_num, line);
+                    }
+                    fclose(input_file);
+                    exit(1);
+                }
+                acc_offset += dir_args_len;
             }
             else
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
                     printf("Invalid line %d : %s\n", line_num, line);
+                    printf("Ret: %d\n", ret);
                 }
                 fclose(input_file);
                 exit(1);
             }
+            dir_arg_free(&dir);
         }
     }
 

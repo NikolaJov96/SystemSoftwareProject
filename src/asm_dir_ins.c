@@ -45,6 +45,39 @@ static int starts_with(char* str1, char* str2, int* start_ind, int suffixes, ...
     return 0;
 }
 
+int check_reserved(char* word)
+{
+    int ind = 0;
+    if (starts_with(word, "add",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "sub",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "mul",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "div",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "cmp",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "and",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "or",   &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "not",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "test", &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "push", &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "pop",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "call", &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "iret", &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "mov",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "shl",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "shr",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "jmp",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (starts_with(word, "ret",  &ind, 5, "", "eq", "ne", "gt", "al")) return 1;
+    if (strcmp(word, ".char") == 0) return 1;
+    if (strcmp(word, ".word") == 0) return 1;
+    if (strcmp(word, ".long") == 0) return 1;
+    if (strcmp(word, ".align") == 0) return 1;
+    if (strcmp(word, ".skip") == 0) return 1;
+    if (strcmp(word, ".global") == 0) return 1;
+    if (strcmp(word, "sp") == 0) return 1;
+    if (strcmp(word, "pc") == 0) return 1;
+    if (strcmp(word, "psw") == 0) return 1;
+    return 0;
+}
+
 static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, int* val, char* label)
 {
     char* str = line + *start_ind;
@@ -254,12 +287,113 @@ int ins_len(ADDRESSING addr)
     case ADDR_PSW: case ADDR_REGDIR: return 2; break;
     case ADDR_IMM: case ADDR_MEMDIR: case ADDR_REGINDDISP: case ADDR_PCREL: return 4; break;
     }
+    return 0;
+}
+
+static void dir_add_arg(Directive* dir, DirArg* arg)
+{
+    arg->next = 0;
+    if (!dir->args_head)
+    {
+        dir->args_head = arg;
+        dir->args_tail = arg;
+    }
+    else
+    {
+        dir->args_tail->next = arg;
+        dir->args_tail = arg;
+    }
+    dir->num_args++;
 }
 
 int dir_parse(Directive* dir, char* line)
 {
-    if (!dir) return 0;
+    int ind = 0;
+    if (!dir) return 1;
+
+    if      (starts_with(line, ".char ",   &ind, 0)) dir->dir = DIR_CHAR;
+    else if (starts_with(line, ".word ",   &ind, 0)) dir->dir = DIR_WORD;
+    else if (starts_with(line, ".long ",   &ind, 0)) dir->dir = DIR_LONG;
+    else if (starts_with(line, ".align ",  &ind, 0)) dir->dir = DIR_ALIGN;
+    else if (starts_with(line, ".skip ",   &ind, 0)) dir->dir = DIR_SKIP;
+    else if (starts_with(line, ".global ", &ind, 0)) dir->dir = DIR_GLOBAL;
+    else return 2;
+
+    dir->args_head = 0;
+    dir->args_tail = 0;
+    dir->num_args = 0;
+    while (line[ind] != 0)
+    {
+        int start = ind;
+
+        if (line[ind] >= '0' && line[ind] <= '9')
+        {
+            while (line[ind] >= '0' && line[ind] <= '9') ind++;
+            if ((line[ind] == ',' && line[ind + 1] == ' ') || line[ind] == 0)
+            {
+                char num[31];
+                DirArg* new_arg;
+
+                if (ind - start > 30) { dir_arg_free(dir); return 4; }
+                new_arg = malloc(sizeof(DirArg));
+                new_arg->str[0] = 0;
+                memcpy(num, line + start, ind - start);
+                num[ind - start] = 0;
+                new_arg->val = atoi(num);
+                dir_add_arg(dir, new_arg);
+            }
+            else { dir_arg_free(dir); return 6; }
+        }
+        else if (line[ind] >= 'a' && line[ind] <= 'z')
+        {
+            while (line[ind] >= 'a' && line[ind] <= 'z') ind++;
+            if (ind - start < 50 && (line[ind] == ',' && line[ind + 1] == ' ') || line[ind] == 0)
+            {
+                char label[50];
+                DirArg* new_arg;
+
+                memcpy(label, line + start, ind - start);
+                label[ind - start] = 0;
+                if (check_reserved(label)) { dir_arg_free(dir); return 5; }
+
+                new_arg = malloc(sizeof(DirArg));
+                memcpy(new_arg->str, label, ind - start);
+                new_arg->val = 0;
+                dir_add_arg(dir, new_arg);
+            }
+            else { dir_arg_free(dir); return 6; }
+        }
+        else { dir_arg_free(dir); return 3; }
+
+        if (line[ind] == 0) break;
+        if (line[ind] != ',' || line[ind + 1] != ' ') { dir_arg_free(dir); return 7; }
+        ind += 2;
+    }
+
     return 0;
+}
+
+int dir_len(Directive* dir, int curr_offset)
+{
+    int len = 0;
+    if (!dir) return 0;
+    switch (dir->dir)
+    {
+    case DIR_CHAR: len = 1; break;
+    case DIR_WORD: len = 2; break;
+    case DIR_LONG: len = 4; break;
+    case DIR_ALIGN:
+        if (dir->num_args != 1 || dir->args_head->str[0] != 0) return -1;
+        if (curr_offset % dir->args_head->val == 0) return 0;
+        return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;
+        break;
+    case DIR_SKIP:
+        if (dir->num_args != 1 || dir->args_head->str[0] != 0) return -1;
+        return dir->args_head->val;
+        break;
+    case DIR_GLOBAL: return 0; break;
+    }
+    return len * dir->num_args;
 }
 
 void dir_arg_free(Directive* dir)
@@ -272,4 +406,5 @@ void dir_arg_free(Directive* dir)
         free(del);
     }
     dir->args_tail = 0;
+    dir->num_args = 0;
 }

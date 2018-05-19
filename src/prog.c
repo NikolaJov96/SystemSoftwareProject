@@ -30,6 +30,7 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
 {
     SymbolTableNode* new_node;
     if (!prog || !name || strlen(name) >= 50) return 0;
+    // check for already existing symbols
     new_node = malloc(sizeof(SymbolTableNode));
     new_node->type = type;
     strcpy(new_node->name, name);

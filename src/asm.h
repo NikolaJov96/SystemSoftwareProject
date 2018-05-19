@@ -13,7 +13,7 @@ typedef enum
 } INSTRUCTION;
 typedef enum { ADDR_PSW, ADDR_IMM, ADDR_REGDIR, ADDR_MEMDIR, ADDR_REGINDDISP, ADDR_PCREL } ADDRESSING;
 
-typedef enum { DIR_CHAR, DIR_WORD, DIR_LONG, DIR_ALIGN, DIR_SKIP } DIRECTIVE;
+typedef enum { DIR_CHAR, DIR_WORD, DIR_LONG, DIR_ALIGN, DIR_SKIP, DIR_GLOBAL } DIRECTIVE;
 
 typedef struct AsmArgs
 {
@@ -36,6 +36,7 @@ typedef struct Instruction
 typedef struct DirArg
 {
     char str[50];
+    int val;
     struct DirArg* next;
 } DirArg;
 
@@ -44,6 +45,7 @@ typedef struct Directive
     DIRECTIVE dir;
     DirArg* args_head;
     DirArg* args_tail;
+    int num_args;
 } Directive;
 
 void parse_args(int argc, char** argv, AsmArgs* args);
@@ -52,7 +54,9 @@ int check_reserved(char* word);
 int ins_parse(Instruction* ins, char* line);
 int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind);
 int ins_len(ADDRESSING addr);
+
 int dir_parse(Directive* dir, char* line);
+int dir_len(Directive* dir, int curr_offset);
 void dir_arg_free(Directive* dir);
 
 #endif  // ASM_H
