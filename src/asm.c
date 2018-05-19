@@ -57,6 +57,19 @@ SECTION parse_section(char* line)
     return SEC_NONE;
 }
 
+void get_label(char* line, char* label)
+{
+    int i;
+    label[0] = 0;
+    for (i = 0; i < 50 && line[i] != 0; i++)
+    {
+        if (line[i] >= 'a' && line[i] <= 'z') label[i] = line[i];
+        else if (line[i] == ':') return;
+        else break;
+    }
+    label[0] = 0;
+}
+
 int main(int argc, char** argv)
 {
     AsmArgs args;
@@ -110,6 +123,9 @@ int main(int argc, char** argv)
 
     while (fgets(line, sizeof(line), input_file)) 
     {
+        SECTION new_sec;
+        char label[50];
+
         line_num++;
         if (strlen(line) >= sizeof(line) - 1)
         {
@@ -125,9 +141,10 @@ int main(int argc, char** argv)
         
         if (skip_line(line)) continue;
 
-        SECTION new_sec = parse_section(line);
+        new_sec = parse_section(line);
         if (new_sec != SEC_NONE)
         {
+            int status;
             if (section_used[new_sec]++ > 0)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
@@ -137,7 +154,7 @@ int main(int argc, char** argv)
                 fclose(input_file);
                 exit(1);
             }
-            if (args.verb == ARGS_VERB_VERBOSE) 
+            if (args.verb == ARGS_VERB_VERBOSE)
             {
                 switch (new_sec)
                 {
@@ -150,6 +167,15 @@ int main(int argc, char** argv)
             }
             curr_section = new_sec;
             if (new_sec == SEC_END) break;
+            if (!prog_add_sym(prog, SYM_SECTION, line))
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Invalid label, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
             continue;
         }
 
@@ -161,6 +187,21 @@ int main(int argc, char** argv)
             }
             fclose(input_file);
             exit(1);
+        }
+
+        get_label(line, label);
+        if (label[0] != 0)
+        {
+            if (!prog_add_sym(prog, SYM_LABEL, label))
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Invalid label, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
+            else if (args.verb == ARGS_VERB_VERBOSE) printf("  Label: %s\n", label);
         }
     }
 

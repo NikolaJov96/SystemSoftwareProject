@@ -2,7 +2,7 @@
 
 typedef enum { ARGS_VERB_SILENT, ARGS_VERB_NORMAL, ARGS_VERB_VERBOSE } ARGS_VERB;
 
-typedef struct
+typedef struct AsmArgs
 {
     ARGS_VERB verb;
     char input_file_name[256];
