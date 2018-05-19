@@ -47,12 +47,12 @@ static int starts_with(char* str1, char* str2, int* start_ind, int suffixes, ...
 
 static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, int* val)
 {
-    // ADDR_PSW, ADDR_IMM, ADDR_REGDIR, ADDR_MEMDIR, ADDR_REGINDPOM
+    // ADDR_PSW, ADDR_IMM, ADDR_REGDIR, ADDR_MEMDIR, ADDR_REGINDDISP
     char* str = line + *start_ind;
     {
         int i = 0;
         while (str[i] >= '0' && str[i] <= '9') i++;
-        if (!str[i] || str[i] == ' ')
+        if (str[i] == 0 || str[i] == ' ')
         {
             char num[31];
             if (i > 30) return 0;
@@ -84,7 +84,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
     }
     {
         int i = 0;
-        int succ = 0;
+        int status = 0;
         if (str[i] == 'r')
         {
             i++;
@@ -92,42 +92,75 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             {
                 *reg = str[i] - '0';
                 i++;
-                if (str[i] == ' ' || str[i] == 0)
+                if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
+                else if (str[i] == '[') { i++; status = 2; }
+                else if (str[i] >= '0' && str[i] <= '9')
                 {
-                    i++; succ = 1;
-                }
-                else if (str[i] >= '0' && str[i] <= '9' && (str[i + 1] == ' ' || str[i + 1] == 0))
-                {
-                    *reg = *reg * 10 + str[i] - '0'; i += 2; succ = 1;
+                    *reg = *reg * 10 + str[i] - '0'; 
+                    i++; 
+                    if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
+                    else if (str[i] == '[')  { i++; status = 2; }
                 }
             }
         }
         else if (str[i] == 'p')
         {
             i++;
-            if (str[i] == 'c' && (str[i + 1] == ' ' || str[i + 1] == 0))
+            if (str[i] == 'c')
             {
-                *reg = 7; i += 2; succ = 1;
+                *reg = 7; 
+                i++;
+                if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
+                else if (str[i] == '[')  { i++; status = 2; }
             }
-            else if (str[i] == 's' && str[i + 1] == 'w' && (str[i + 2] == ' ' || str[i + 2] == 0))
+            else if (str[i] == 's' && str[i + 1] == 'w')
             {
-                *reg = 8; i += 3; succ = 1;
+                *reg = 8;
+                i += 2;
+                if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
+                else if (str[i] == '[')  { i++; status = 2; }
             }
         }
         else if (str[i] == 's')
         {
             i++;
-            if (str[i] == 'p' && (str[i + 1] == ' ' || str[i + 1] == 0))
+            if (str[i] == 'p')
             {
-                *reg = 6; i += 2; succ = 1;
+                *reg = 6;
+                i++;
+                if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
+                else if (str[i] == '[')  { i++; status = 2; }
             }
         }
 
-        if (succ)
+        if (status == 1)
         {
             *start_ind += i;
             *adr = ADDR_REGDIR;
             return 1;
+        }
+        else if (status == 2)
+        {
+            int disp_start = i;
+            if (str[i] >= '0' && str[i] <= '9')
+            {
+                while (str[i] >= '0' && str[i] <= '9') i++;
+                if (str[i] == ']' && i < 30 && (str[i + 1] == ' ' || str[i + 1] == 0))
+                {
+                    i++;
+                    char num[31];
+                    *start_ind += i;
+                    *adr = ADDR_REGINDDISP;
+                    memcpy(num, str, i);
+                    num[i + 1] = 0;
+                    *val = atoi(num);
+                    return 1;
+                }
+            }
+            else if (str[i] >= '0' && str[i] <= '9')
+            {
+
+            }
         }
     }
     return 0;
