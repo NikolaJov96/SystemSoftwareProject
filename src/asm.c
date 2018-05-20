@@ -245,45 +245,39 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            int op1_len = 0;
-            int op2_len = 0;
+            int max_op_len = 0, op_len = 0, ind = 0;
             int addr_error = 0;
-            if (ins.num_ops > 0) op1_len = ins_len(ins.op1_addr);
-            if (ins.num_ops > 1) op2_len = ins_len(ins.op2_addr);
-            if (op1_len == 4 && op2_len == 4)
+            InsOp* op;
+            
+            for (op = ins.ops_head; op; op = op->next)
             {
-                if (args.verb != ARGS_VERB_SILENT) 
+                if ((addr_error = ins_valid_addr(ins.ins, op->addr, ind)) != 0)
                 {
-                    printf("Cannot use two immediate values in one instruction, line %d : %s\n", line_num, line);
+                    if (args.verb != ARGS_VERB_SILENT) 
+                    {
+                        if (addr_error == 1)
+                            printf("Invalid addressing for operand %d, line %d : %s\n", ind, line_num, line);
+                        if (addr_error == 2) 
+                            printf("Too many parameters, line %d : %s\n", line_num, line);
+                    }
+                    fclose(input_file);
+                    exit(1);
                 }
-                fclose(input_file);
-                exit(1);
-            }
-            if (ins.num_ops > 0 && (addr_error = ins_valid_addr(ins.ins, ins.op1_addr, 0)) != 0)
-            {
-                if (args.verb != ARGS_VERB_SILENT) 
+                op_len = ins_len(op->addr);
+                if (op_len > max_op_len) max_op_len = op_len;
+                else if (op_len == max_op_len && op_len == 4)
                 {
-                    if (addr_error == 1)
-                        printf("Invalid addressing for first operand, line %d : %s\n", line_num, line);
-                    if (addr_error == 2) 
-                        printf("Too many parameters, line %d : %s\n", line_num, line);
+                    if (args.verb != ARGS_VERB_SILENT) 
+                    {
+                        printf("Cannot use muliple immediate values in one instruction, line %d : %s\n", line_num, line);
+                    }
+                    fclose(input_file);
+                    exit(1);
                 }
-                fclose(input_file);
-                exit(1);
+                ind++;
             }
-            if (ins.num_ops > 1 && (addr_error = ins_valid_addr(ins.ins, ins.op2_addr, 1)) != 0)
-            {
-                if (args.verb != ARGS_VERB_SILENT) 
-                {
-                    if (addr_error == 1)
-                        printf("Invalid addressing for second operand, line %d : %s\n", line_num, line);
-                    if (addr_error == 2) 
-                        printf("Too many parameters, line %d : %s\n", line_num, line);
-                }
-                fclose(input_file);
-                exit(1);
-            }
-            acc_offset += ( op1_len > op2_len ? op1_len : op2_len );
+
+            acc_offset += max_op_len;
         }
         else if (ret != 2)
         {
@@ -299,6 +293,7 @@ int main(int argc, char** argv)
             fclose(input_file);
             exit(1);
         }
+        ins_op_free(&ins);
 
         if (ret == 2)
         {
@@ -354,12 +349,7 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            int op1_len = 0;
-            int op2_len = 0;
             char b1 = 0, b2 = 0, b3 = 0, b4 = 0;
-
-            if (ins.num_ops > 0) op1_len = ins_len(ins.op1_addr);
-            if (ins.num_ops > 1) op2_len = ins_len(ins.op2_addr);
 
             switch (ins.cond)
             {
@@ -388,7 +378,7 @@ int main(int argc, char** argv)
             case INS_SHL:  b1 |= 0b00111000; break;
             case INS_SHR:  b1 |= 0b00111100; break;
             case INS_JMP:
-                if (ins.op1_addr == ADDR_PCREL) b1 |= 0b00000000;
+                if (ins.ops_head->addr == ADDR_PCREL) b1 |= 0b00000000;
                 else b1 |= 0b00110100;
             break;
             }

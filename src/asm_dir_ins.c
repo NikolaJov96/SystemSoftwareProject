@@ -78,12 +78,10 @@ int check_reserved(char* word)
     return 0;
 }
 
-static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, int* val, char* label)
+static InsOp* ins_op_parse(char* line, int* start_ind)
 {
     char* str = line + *start_ind;
-    *reg = -1;
-    *val = 0;
-    label[0] = 0;
+    int reg = 0;
 
     {
         int i = 0;
@@ -99,15 +97,18 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             while (str[i] >= '0' && str[i] <= '9') i++;
             if (str[i] == ' ' || str[i] == 0)
             {
-                i++;
                 char num[31];
+                InsOp* new_op;
+                i++;
                 if (i > 30) return 0;
+
                 *start_ind += i - 1;
-                *adr = ( start == 0 ? ADDR_IMM : ADDR_MEMDIR );
+                new_op = calloc(1, sizeof(InsOp));
+                new_op->addr = ( start == 0 ? ADDR_IMM : ADDR_MEMDIR );
                 memcpy(num, str + start, i - start);
                 num[i - start] = 0;
-                *val = atoi(num);
-                return 1;
+                new_op->val = atoi(num);
+                return new_op;
             }
         }
     }
@@ -121,16 +122,23 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             while (str[i] >= 'a' && str[i] <= 'z') i++;
             if (i < 50 && (str[i] == ' ' || str[i] == 0))
             {
-                *start_ind += i;
-                switch (status)
-                {
-                case 0: *adr = ADDR_MEMDIR; break;
-                case 1: *adr = ADDR_IMM; break;
-                case 2: *adr = ADDR_PCREL; break;
-                }
+                char label[50];
+                InsOp* new_op;
                 memcpy(label, str + start, i - start);
                 label[i - start] = 0;
-                if (!check_reserved(label)) return 1;
+                if (check_reserved(label)) return 0;
+                
+                *start_ind += i;
+                new_op = calloc(1, sizeof(InsOp));
+                switch (status)
+                {
+                case 0: new_op->addr = ADDR_MEMDIR; break;
+                case 1: new_op->addr = ADDR_IMM; break;
+                case 2: new_op->addr = ADDR_PCREL; break;
+                }
+                memcpy(new_op->label, str + start, i - start);
+                new_op->label[i - start] = 0;
+                return new_op;
             }
         }
     }
@@ -142,7 +150,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             i++;
             if (str[i] >= '0' && str[i] <= '7')
             {
-                *reg = str[i] - '0';
+                reg = str[i] - '0';
                 i++;
                 if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
                 else if (str[i] == '[') { i++; status = 2; }
@@ -153,21 +161,22 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             i++;
             if (str[i] == 'c')
             {
-                *reg = 7; 
+                reg = 7; 
                 i++;
                 if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
                 else if (str[i] == '[')  { i++; status = 2; }
             }
             else if (str[i] == 's' && str[i + 1] == 'w')
             {
-                *reg = 8;
+                reg = 8;
                 i += 2;
                 if (str[i] == ' ' || str[i] == 0) 
-                { 
+                {
+                    InsOp* new_op = calloc(1, sizeof(InsOp));
                     i++; 
                     *start_ind += i - 1;
-                    *adr = ADDR_PSW;
-                    return 1;
+                    new_op->addr = ADDR_PSW;
+                    return new_op;
                 }
             }
         }
@@ -176,7 +185,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             i++;
             if (str[i] == 'p')
             {
-                *reg = 6;
+                reg = 6;
                 i++;
                 if (str[i] == ' ' || str[i] == 0) { i++; status = 1; }
                 else if (str[i] == '[')  { i++; status = 2; }
@@ -185,9 +194,11 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
 
         if (status == 1)
         {
+            InsOp* new_op = calloc(1, sizeof(InsOp));
             *start_ind += i - 1;
-            *adr = ADDR_REGDIR;
-            return 1;
+            new_op->addr = ADDR_REGDIR;
+            new_op->reg = reg;
+            return new_op;
         }
         else if (status == 2)
         {
@@ -198,14 +209,15 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
                 while (str[i] >= '0' && str[i] <= '9') i++;
                 if (str[i] == ']' && i < 30 && (str[i + 1] == ' ' || str[i + 1] == 0))
                 {
-                    i += 2;
                     char num[31];
+                    InsOp* new_op = calloc(1, sizeof(InsOp));
+                    i += 2;
                     *start_ind += i - 1;
-                    *adr = ADDR_REGINDDISP;
+                    new_op->addr = ADDR_REGINDDISP;
                     memcpy(num, str + disp_start, i);
                     num[i] = 0;
-                    *val = atoi(num);
-                    return 1;
+                    new_op->val = atoi(num);
+                    return new_op;
                 }
             }
             else if (str[i] >= 'a' && str[i] <= 'z')
@@ -213,17 +225,40 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
                 while (str[i] >= 'a' && str[i] <= 'z') i++;
                 if (str[i] == ']' && i < 50 && (str[i + 1] == ' ' || str[i + 1] == 0))
                 {
-                    i += 2;
-                    *start_ind += i - 1;
-                    *adr = ADDR_REGINDDISP;
+                    char label[50];
+                    InsOp* new_op;
                     memcpy(label, str + disp_start, i - 1);
                     label[i] = 0;
-                    if (!check_reserved(label)) return 1;
+                    if (check_reserved(label)) return 0;
+
+                    new_op = calloc(1, sizeof(InsOp));
+                    i += 2;
+                    *start_ind += i - 1;
+                    new_op->addr = ADDR_REGINDDISP;
+                    memcpy(new_op->label, str + disp_start, i - 1);
+                    new_op->label[i] = 0;
+                    return new_op;
                 }
             }
         }
     }
     return 0;
+}
+
+static void ins_add_op(Instruction* ins, InsOp* arg)
+{
+    arg->next = 0;
+    if (!ins->ops_head)
+    {
+        ins->ops_head = arg;
+        ins->ops_tail = arg;
+    }
+    else
+    {
+        ins->ops_tail->next = arg;
+        ins->ops_tail = arg;
+    }
+    ins->num_ops++;
 }
 
 int ins_parse(Instruction* ins, char* line)
@@ -261,15 +296,17 @@ int ins_parse(Instruction* ins, char* line)
     case 5: ins->cond = COND_AL; break;
     }
 
+    ins->ops_head = 0;
+    ins->ops_tail = 0;
     ins->num_ops = 0;
-    if (line[ind] == 0) return 0;
-    if (!ins_op_parse(line, &ind, &ins->op1_addr, &ins->op1_reg, &ins->op1_val, ins->op1_label)) return 3;
-    ins->num_ops = 1;
-    if (line[ind] == 0) return 0;
-    if (line[ind] == ' ') ind++;
-    if (!ins_op_parse(line, &ind, &ins->op2_addr, &ins->op2_reg, &ins->op2_val, ins->op2_label)) return 4;
-    ins->num_ops = 2;
-    if (line[ind] != 0) return 5;
+    while (line[ind] != 0) 
+    {
+        ins->num_ops++;
+        InsOp* new_op = ins_op_parse(line, &ind);
+        if (!new_op) return 3;
+        ins_add_op(ins, new_op);
+        if (line[ind] == ' ') ind++;
+    }
 
     return 0;
 }
@@ -280,11 +317,16 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
     {
     case INS_ADD: case INS_SUB: case INS_MUL: case INS_DIV: case INS_AND: 
     case INS_OR: case INS_NOT: case INS_SHL: case INS_SHR: case INS_MOV: // mov explanation
+        if (op_ind > 1) return 2;
         if (op_ind > 0 || addr != ADDR_IMM) return 0;
         return 1;
         break;
-    case INS_CMP: return 0; break;
+    case INS_CMP: 
+        if (op_ind > 1) return 2;
+        return 0; 
+        break;
     case INS_TEST:  // what is the result of test?
+        if (op_ind > 1) return 2;
         return 0;
         break;
     case INS_PUSH: case INS_CALL: case INS_JMP:
@@ -308,6 +350,19 @@ int ins_len(ADDRESSING addr)
     case ADDR_IMM: case ADDR_MEMDIR: case ADDR_REGINDDISP: case ADDR_PCREL: return 4; break;
     }
     return 0;
+}
+
+void ins_op_free(Instruction* ins)
+{
+    InsOp* del;
+    while (ins->ops_head)
+    {
+        del = ins->ops_head;
+        ins->ops_head = ins->ops_head->next;
+        free(del);
+    }
+    ins->ops_tail = 0;
+    ins->num_ops = 0;
 }
 
 static void dir_add_arg(Directive* dir, DirArg* arg)

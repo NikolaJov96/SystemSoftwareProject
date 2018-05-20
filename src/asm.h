@@ -22,15 +22,22 @@ typedef struct AsmArgs
     char output_file_name[256];
 } AsmArgs;
 
+typedef struct InsOp
+{
+    ADDRESSING addr;
+    int reg;
+    int val;
+    char label[50];
+    struct InsOp* next;
+} InsOp;
+
 typedef struct Instruction
 {
     INS_COND cond;
     INSTRUCTION ins;
+    InsOp* ops_head;
+    InsOp* ops_tail;
     int num_ops;
-    ADDRESSING op1_addr, op2_addr;
-    int op1_reg, op2_reg;
-    int op1_val, op2_val;
-    char op1_label[50], op2_label[50];
 } Instruction;
 
 typedef struct DirArg
@@ -54,6 +61,7 @@ int check_reserved(char* word);
 int ins_parse(Instruction* ins, char* line);
 int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind);
 int ins_len(ADDRESSING addr);
+void ins_op_free(Instruction* ins);
 
 int dir_parse(Directive* dir, char* line);
 int dir_len(Directive* dir, int curr_offset);
