@@ -9,6 +9,9 @@
 void preprocess_line(char* line)
 {
     int len, i, j, acc;
+
+    for (i = 0; line[i]; i++) if (line[i] == ';') { line[i] = 0; break; }
+
     len = strlen(line);
     if (len == 0) return;
 
@@ -349,49 +352,149 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            char b1 = 0, b2 = 0, b3 = 0, b4 = 0;
+            char data[4] = { 0, 0, 0, 0 };
+            int i, imm_value = 0;
+            InsOp* op;
 
             switch (ins.cond)
             {
-            case COND_EQ: break;
-            case COND_NE: b1 = 0b01000000; break;
-            case COND_GT: b1 = 0b10000000; break;
-            case COND_AL: b1 = 0b11000000; break;
+            case COND_EQ: data[0] = 0b00000000; break;
+            case COND_NE: data[0] = 0b01000000; break;
+            case COND_GT: data[0] = 0b10000000; break;
+            case COND_AL: data[0] = 0b11000000; break;
             }
 
             switch (ins.ins)
             {
-            case INS_ADD:  b1 |= 0b00000000; break;
-            case INS_SUB:  b1 |= 0b00000100; break;
-            case INS_MUL:  b1 |= 0b00001000; break;
-            case INS_DIV:  b1 |= 0b00001100; break;
-            case INS_CMP:  b1 |= 0b00010000; break;
-            case INS_AND:  b1 |= 0b00010100; break;
-            case INS_OR:   b1 |= 0b00011000; break;
-            case INS_NOT:  b1 |= 0b00011100; break;
-            case INS_TEST: b1 |= 0b00100000; break;
-            case INS_PUSH: b1 |= 0b00100100; break;
-            case INS_POP: case INS_RET:  b1 |= 0b00101000; break;
-            case INS_IRET: b1 |= 0b00101100; break;
-            case INS_CALL: b1 |= 0b00110000; break;
-            case INS_MOV:  b1 |= 0b00110100; break;
-            case INS_SHL:  b1 |= 0b00111000; break;
-            case INS_SHR:  b1 |= 0b00111100; break;
+            case INS_ADD:  data[0] |= 0b00000000; break;
+            case INS_SUB:  data[0] |= 0b00000100; break;
+            case INS_MUL:  data[0] |= 0b00001000; break;
+            case INS_DIV:  data[0] |= 0b00001100; break;
+            case INS_CMP:  data[0] |= 0b00010000; break;
+            case INS_AND:  data[0] |= 0b00010100; break;
+            case INS_OR:   data[0] |= 0b00011000; break;
+            case INS_NOT:  data[0] |= 0b00011100; break;
+            case INS_TEST: data[0] |= 0b00100000; break;
+            case INS_PUSH: data[0] |= 0b00100100; break;
+            case INS_POP: case INS_RET:  data[0] |= 0b00101000; break;
+            case INS_IRET: data[0] |= 0b00101100; break;
+            case INS_CALL: data[0] |= 0b00110000; break;
+            case INS_MOV:  data[0] |= 0b00110100; break;
+            case INS_SHL:  data[0] |= 0b00111000; break;
+            case INS_SHR:  data[0] |= 0b00111100; break;
             case INS_JMP:
-                if (ins.ops_head->addr == ADDR_PCREL) b1 |= 0b00000000;
-                else b1 |= 0b00110100;
+                if (ins.ops_head->addr == ADDR_PCREL) data[0] |= 0b00000000;
+                else data[0] |= 0b00110100;
             break;
             }
             
-            if (ins.num_ops > 0)
-            { }
+            for (op = ins.ops_head, i = 0; op; op = op->next, i++)
+            {
+                char byte = 0;
+                if (op->addr == ADDR_PSW) byte = 0b00000111;
+                else if (op->addr == ADDR_REGDIR) byte = 0b000001000 | (op->reg & 0b111);
+                else
+                {
+                    imm_value = 1;
+
+                    switch (op->addr)
+                    {
+                    case ADDR_IMM: byte = 0b0000000; break;
+                    case ADDR_MEMDIR: byte = 0b00010000; break;
+                    case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
+                    case ADDR_PCREL: /*pcrel*/ break;
+                    }
+
+                    if (op->label[0] == 0) 
+                    {
+                        // check little endian order
+                        data[2] = op->val >> 8;
+                        data[3] = op->val & 0xFF;
+                    }
+                    else
+                    {
+                        // relocation
+                        data[2] = 0;
+                        data[3] = 0;
+                    }
+                }
+
+                if (i == 0) { data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5; }
+                else if (i == 1) { data[1] |= byte & 0b11111; }
+            }
+            printf("%d %d %d %d\n", data[0], data[1], data[2], data[3]);
+
+            prog_add_data(prog, data[0]);
+            prog_add_data(prog, data[1]);
+            if (imm_value)
+            {
+                prog_add_data(prog, data[0]);
+                prog_add_data(prog, data[0]);
+            }
         }
+        ins_op_free(&ins);
         if (ret == 2)
         {
+            // sta je labela u direktivama
+            // mov pc?
+            // test
             ret = dir_parse(&dir, line);
             if (ret == 0)
             {
-                // translate directive
+                long label, number, neg, bytes;
+                int i;
+                DirArg* arg;
+                switch (dir.dir)
+                {
+                case DIR_CHAR: label = 0; number = 1; neg = 1; bytes = 1; break;
+                case DIR_WORD: label = 1; number = 1; neg = 1; bytes = 2; break;
+                case DIR_LONG: label = 1; number = 1; neg = 1; bytes = 4; break;
+                case DIR_ALIGN: case DIR_SKIP: label = 0; number = 1; neg = 0; bytes = 2; break;
+                case DIR_GLOBAL: label = 1; number = 0; neg = 0; bytes = 2; break;
+                }
+                for (arg = dir.args_head, i = 0; arg; arg = arg->next, i++)
+                {
+                    long abs_val = arg->val;
+                    if (abs_val < 0) abs_val = -abs_val;
+                    else abs_val++;
+                    if (arg->label[0] && !label)
+                    {
+                        if (args.verb != ARGS_VERB_SILENT) 
+                        {
+                            printf("Cannot use label with this directive, line %d : %s\n", line_num, line);
+                        }
+                        fclose(input_file);
+                        exit(1);
+                    }
+                    if (!arg->label[0] && !number)
+                    {
+                        if (args.verb != ARGS_VERB_SILENT) 
+                        {
+                            printf("Cannot use number with this directive, line %d : %s\n", line_num, line);
+                        }
+                        fclose(input_file);
+                        exit(1);
+                    }
+                    if (arg->val < 0 && !neg)
+                    {
+                        if (args.verb != ARGS_VERB_SILENT) 
+                        {
+                            printf("Cannot use negative value with this directive, line %d : %s\n", line_num, line);
+                        }
+                        fclose(input_file);
+                        exit(1);
+                    }
+                    if (abs_val > (1l << (bytes * 8 - 1)))
+                    {
+                        if (args.verb != ARGS_VERB_SILENT) 
+                        {
+                            printf("--%d\n", arg->val);
+                            printf("Value %d too large, line %d : %s\n", i + 1, line_num, line);
+                        }
+                        fclose(input_file);
+                        exit(1);
+                    }
+                }
             }
             dir_arg_free(&dir);
         }

@@ -283,7 +283,7 @@ int ins_parse(Instruction* ins, char* line)
     else if (ret = starts_with(line, "shl",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHL;
     else if (ret = starts_with(line, "shr",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHR;
     else if (ret = starts_with(line, "jmp",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_JMP;
-    else if (ret = starts_with(line, "ret",  &ind, 5, "",  "eq",  "ne",  "gt",  "al"))  ins->ins = INS_RET;
+    else if (ret = starts_with(line, "ret",  &ind, 5, "al",  "eq",  "ne",  "gt",  "" )) ins->ins = INS_RET;
     else return 2;
     if (line[ind] == ' ') ind++;
 
@@ -412,7 +412,7 @@ int dir_parse(Directive* dir, char* line)
 
                 if (ind - start > 30) { dir_arg_free(dir); return 4; }
                 new_arg = malloc(sizeof(DirArg));
-                new_arg->str[0] = 0;
+                new_arg->label[0] = 0;
                 memcpy(num, line + start, ind - start);
                 num[ind - start] = 0;
                 new_arg->val = atoi(num);
@@ -433,7 +433,7 @@ int dir_parse(Directive* dir, char* line)
                 if (check_reserved(label)) { dir_arg_free(dir); return 5; }
 
                 new_arg = malloc(sizeof(DirArg));
-                memcpy(new_arg->str, label, ind - start);
+                memcpy(new_arg->label, label, ind - start);
                 new_arg->val = 0;
                 dir_add_arg(dir, new_arg);
             }
@@ -459,12 +459,12 @@ int dir_len(Directive* dir, int curr_offset)
     case DIR_WORD: len = 2; break;
     case DIR_LONG: len = 4; break;
     case DIR_ALIGN:
-        if (dir->num_args != 1 || dir->args_head->str[0] != 0 || dir->args_head->val < 0) return -1;
+        if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;
         if (curr_offset % dir->args_head->val == 0) return 0;
         return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;
         break;
     case DIR_SKIP:
-        if (dir->num_args != 1 || dir->args_head->str[0] != 0 || dir->args_head->val < 0) return -1;
+        if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;
         return dir->args_head->val;
         break;
     case DIR_GLOBAL: return 0; break;

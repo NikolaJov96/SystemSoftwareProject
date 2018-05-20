@@ -42,7 +42,7 @@ typedef struct Instruction
 
 typedef struct DirArg
 {
-    char str[50];
+    char label[50];
     int val;
     struct DirArg* next;
 } DirArg;
