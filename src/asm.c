@@ -91,6 +91,14 @@ int get_label(char* line, char* label)
     return 1;
 }
 
+static char err_line[256];
+static void exit_prog(ARGS_VERB verb, FILE *close_file)
+{
+    if (verb != ARGS_VERB_SILENT)  printf("%s\n", err_line);
+    if (close_file) fclose(close_file);
+    exit(1);
+}
+
 int main(int argc, char** argv)
 {
     AsmArgs args;
@@ -118,21 +126,15 @@ int main(int argc, char** argv)
     input_file = fopen(args.input_file_name, "r");
     if (!input_file)
     {
-        if (args.verb != ARGS_VERB_SILENT)
-        {
-            printf("Error opening input file %s : %s\n", args.input_file_name, strerror(errno));
-        }
-        exit(1);
+        sprintf(err_line, "Error opening input file %s : %s", args.input_file_name, strerror(errno));
+        exit_prog(args.verb, 0);
     }
     fclose(input_file);
     output_file = fopen(args.output_file_name, "w");
     if (!output_file)
     {
-        if (args.verb != ARGS_VERB_SILENT)
-        {
-            printf("Error opening output file %s : %s\n", args.output_file_name, strerror(errno));
-        }
-        exit(1);
+        sprintf(err_line, "Error opening output file %s : %s\n", args.output_file_name, strerror(errno));
+        exit_prog(args.verb, 0);
     }
     fclose(output_file);
 
@@ -154,13 +156,8 @@ int main(int argc, char** argv)
         line_num++;
         if (strlen(line) >= sizeof(line) - 1)
         {
-            if (args.verb != ARGS_VERB_SILENT) 
-            {
-                line[40] = 0;
-                printf("Line %d too long : %s...\n", line_num, line);
-            }
-            fclose(input_file);
-            exit(1);
+            sprintf(err_line, "Line %d too long : %s...", line_num, line);
+            exit_prog(args.verb, input_file);
         }
         preprocess_line(line);
         
@@ -172,12 +169,8 @@ int main(int argc, char** argv)
             int status;
             if (section_used[new_sec]++ > 0)
             {
-                if (args.verb != ARGS_VERB_SILENT) 
-                {
-                    printf("Already used section, line %d : %s\n", line_num, line);
-                }
-                fclose(input_file);
-                exit(1);
+                sprintf(err_line, "Already used section, line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
             }
             if (args.verb == ARGS_VERB_VERBOSE)
             {
@@ -194,51 +187,42 @@ int main(int argc, char** argv)
             if (new_sec == SEC_END) break;
             acc_offset = 0;
             ret = prog_add_sym(prog, SYM_SECTION, line, acc_offset);
-            if (ret != 0)
+            if (ret == 1)
             {
-                if (args.verb != ARGS_VERB_SILENT) 
-                {
-                    if (ret == 1) printf("Invalid label, line %d : %s\n", line_num, line);
-                    else if (ret == 2) printf("Label already defined, line %d : %s\n", line_num, line);
-                }
-                fclose(input_file);
-                exit(1);
+                sprintf(err_line, "Invalid label, line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
+            }
+            else if (ret == 2)
+            {
+                sprintf(err_line, "Label already defined, line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
             }
             continue;
         }
 
         if (curr_section == SEC_NONE)
         {
-            if (args.verb != ARGS_VERB_SILENT) 
-            {
-                printf("Unknown section on line %d : %s\n", line_num, line);
-            }
-            fclose(input_file);
-            exit(1);
+            sprintf(err_line, "Unknown section on line %d : %s", line_num, line);
+            exit_prog(args.verb, input_file);
         }
 
         if (!get_label(line, label))
         {
-            if (args.verb != ARGS_VERB_SILENT) 
-            {
-                line[40] = 0;
-                printf("Invalid label, line %d : %s...\n", line_num, line);
-            }
-            fclose(input_file);
-            exit(1);
+            sprintf(err_line, "Invalid label, line %d : %s...", line_num, line);
+            exit_prog(args.verb, input_file);
         }
         if (label[0] != 0)
         {
             ret = prog_add_sym(prog, SYM_LABEL, label, acc_offset);
-            if (ret != 0)
+            if (ret == 1)
             {
-                if (args.verb != ARGS_VERB_SILENT) 
-                {
-                    if (ret == 1) printf("Invalid label, line %d : %s\n", line_num, line);
-                    else if (ret == 2) printf("Label already defined, line %d : %s\n", line_num, line);
-                }
-                fclose(input_file);
-                exit(1);
+                sprintf(err_line, "Invalid label, line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
+            }
+            else if (ret == 2)
+            {
+                sprintf(err_line, "Label already defined, line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
             }
             else if (args.verb == ARGS_VERB_VERBOSE) printf("  Label: %s\n", label);
         }
@@ -256,26 +240,23 @@ int main(int argc, char** argv)
             {
                 if ((addr_error = ins_valid_addr(ins.ins, op->addr, ind)) != 0)
                 {
-                    if (args.verb != ARGS_VERB_SILENT) 
+                    if (addr_error == 1)
                     {
-                        if (addr_error == 1)
-                            printf("Invalid addressing for operand %d, line %d : %s\n", ind, line_num, line);
-                        if (addr_error == 2) 
-                            printf("Too many parameters, line %d : %s\n", line_num, line);
+                        sprintf(err_line, "Invalid addressing for operand %d, line %d : %s", ind + 1, line_num, line);
+                        exit_prog(args.verb, input_file);
                     }
-                    fclose(input_file);
-                    exit(1);
+                    else if (addr_error == 2)
+                    {
+                        sprintf(err_line, "Too many parameters, line %d : %s", line_num, line);
+                        exit_prog(args.verb, input_file);
+                    }
                 }
                 op_len = ins_len(op->addr);
                 if (op_len > max_op_len) max_op_len = op_len;
                 else if (op_len == max_op_len && op_len == 4)
                 {
-                    if (args.verb != ARGS_VERB_SILENT) 
-                    {
-                        printf("Cannot use muliple immediate values in one instruction, line %d : %s\n", line_num, line);
-                    }
-                    fclose(input_file);
-                    exit(1);
+                    sprintf(err_line, "Cannot use muliple immediate values in one instruction, line %d : %s", line_num, line);
+                    exit_prog(args.verb, input_file);
                 }
                 ind++;
             }
@@ -306,24 +287,15 @@ int main(int argc, char** argv)
                 int dir_args_len = dir_len(&dir, acc_offset);
                 if (dir_args_len == -1)
                 {
-                    if (args.verb != ARGS_VERB_SILENT) 
-                    {
-                        printf("Invalid use of directive, line %d : %s\n", line_num, line);
-                    }
-                    fclose(input_file);
-                    exit(1);
+                    sprintf(err_line, "Invalid use of directive, line %d : %s", line_num, line);
+                    exit_prog(args.verb, input_file);
                 }
                 acc_offset += dir_args_len;
             }
             else
             {
-                if (args.verb != ARGS_VERB_SILENT) 
-                {
-                    printf("Invalid line %d : %s\n", line_num, line);
-                    printf("Ret: %d\n", ret);
-                }
-                fclose(input_file);
-                exit(1);
+                sprintf(err_line, "Invalid line %d : %s", line_num, line);
+                exit_prog(args.verb, input_file);
             }
             dir_arg_free(&dir);
         }
@@ -422,7 +394,7 @@ int main(int argc, char** argv)
                 if (i == 0) { data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5; }
                 else if (i == 1) { data[1] |= byte & 0b11111; }
             }
-            printf("%d %d %d %d\n", data[0], data[1], data[2], data[3]);
+            // printf("%d %d %d %d\n", data[0], data[1], data[2], data[3]);
 
             prog_add_data(prog, data[0]);
             prog_add_data(prog, data[1]);
@@ -459,40 +431,23 @@ int main(int argc, char** argv)
                     else abs_val++;
                     if (arg->label[0] && !label)
                     {
-                        if (args.verb != ARGS_VERB_SILENT) 
-                        {
-                            printf("Cannot use label with this directive, line %d : %s\n", line_num, line);
-                        }
-                        fclose(input_file);
-                        exit(1);
+                        sprintf(err_line, "Cannot use label with this directive, line %d : %s\n", line_num, line);
+                        exit_prog(args.verb, input_file);
                     }
                     if (!arg->label[0] && !number)
                     {
-                        if (args.verb != ARGS_VERB_SILENT) 
-                        {
-                            printf("Cannot use number with this directive, line %d : %s\n", line_num, line);
-                        }
-                        fclose(input_file);
-                        exit(1);
+                        sprintf(err_line, "Cannot use number with this directive, line %d : %s\n", line_num, line);
+                        exit_prog(args.verb, input_file);
                     }
                     if (arg->val < 0 && !neg)
                     {
-                        if (args.verb != ARGS_VERB_SILENT) 
-                        {
-                            printf("Cannot use negative value with this directive, line %d : %s\n", line_num, line);
-                        }
-                        fclose(input_file);
-                        exit(1);
+                        sprintf(err_line, "Cannot use negative value with this directive, line %d : %s\n", line_num, line);
+                        exit_prog(args.verb, input_file);
                     }
                     if (abs_val > (1l << (bytes * 8 - 1)))
                     {
-                        if (args.verb != ARGS_VERB_SILENT) 
-                        {
-                            printf("--%d\n", arg->val);
-                            printf("Value %d too large, line %d : %s\n", i + 1, line_num, line);
-                        }
-                        fclose(input_file);
-                        exit(1);
+                        sprintf(err_line, "Value %d too large, line %d : %s\n", i + 1, line_num, line);
+                        exit_prog(args.verb, input_file);
                     }
                 }
             }

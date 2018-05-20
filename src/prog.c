@@ -117,15 +117,12 @@ PROG_RET prog_store(Program* prog, char* path)
     {
         char c1 = ((prog->data_buffer[i] >> 4 ) & 0b1111) + '0';
         char c2 = (prog->data_buffer[i] & 0b1111) + '0';
-        int ci = prog->data_buffer[i];
         if (c1 > '9') c1 = c1 - '9' - 1 + 'A';
         if (c2 > '9') c2 = c2 - '9' - 1 + 'A';
         fprintf(file, "%c%c ", c1, c2);
-        printf("%c%c (%d) ", c1, c2, ci);
         if ((i + 1) % 10 == 0) 
         {
             fprintf(file, "\n");
-            printf("\n");
         }
     }
 
