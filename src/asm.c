@@ -247,12 +247,35 @@ int main(int argc, char** argv)
         {
             int op1_len = ins_len(ins.op1_addr);
             int op2_len = 0;
+            int addr_error = 0;
             if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
             if (op1_len == 4 && op2_len == 4)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
                     printf("Cannot use two immediate values in one instruction, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
+            addr_error = ins_valid_addr(ins.ins, ins.op1_addr, 0);
+            if (addr_error != 0)
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    printf("Invalid addressing for first operand, line %d : %s\n", line_num, line);
+                }
+                fclose(input_file);
+                exit(1);
+            }
+            if (ins.num_ops > 1 && (addr_error = ins_valid_addr(ins.ins, ins.op2_addr, 1)) != 0)
+            {
+                if (args.verb != ARGS_VERB_SILENT) 
+                {
+                    if (addr_error == 1) 
+                        printf("Invalid addressing for second operand, line %d : %s\n", line_num, line);
+                    if (addr_error == 2) 
+                        printf("Too many parameters, line %d : %s\n", line_num, line);
                 }
                 fclose(input_file);
                 exit(1);

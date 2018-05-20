@@ -274,10 +274,25 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
 {
     switch (ins)
     {
-        /*case INS_ADD, INS_SUB, INS_MUL, INS_DIV, INS_CMP, INS_AND, INS_OR, INS_NOT, INS_TEST,
-    INS_PUSH, INS_POP, INS_CALL, INS_IRET, INS_MOV, INS_SHL, INS_SHR, INS_JMP, INS_RET */
+    case INS_ADD: case INS_SUB: case INS_MUL: case INS_DIV: case INS_AND: 
+    case INS_OR: case INS_NOT: case INS_SHL: case INS_SHR: case INS_MOV: // mov explanation
+        if (op_ind > 0 || addr != ADDR_IMM) return 0;
+        return 1;
+        break;
+    case INS_CMP: return 0; break;
+    case INS_TEST:  // what is the result of test?
+        return 0;
+        break;
+    case INS_PUSH: case INS_CALL: case INS_JMP:
+        if (op_ind > 0) return 2; 
+        return 0;
+        break;
+    case INS_POP: case INS_IRET: case INS_RET:
+        if (op_ind > 0) return 2;
+        if (addr == ADDR_IMM) return 1;
+        return 0;
+        break;
     }
-    return 0;
 }
 
 int ins_len(ADDRESSING addr)
