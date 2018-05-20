@@ -356,44 +356,45 @@ int main(int argc, char** argv)
         {
             int op1_len = 0;
             int op2_len = 0;
-            char b1 = 0;
-            char b2 = 0;
+            char b1 = 0, b2 = 0, b3 = 0, b4 = 0;
+
             if (ins.num_ops > 0) op1_len = ins_len(ins.op1_addr);
             if (ins.num_ops > 1) op2_len = ins_len(ins.op2_addr);
 
-            if (ins.ins == INS_PUSH || ins.ins == INS_POP || ins.ins == INS_IRET || INS_CALL)
+            switch (ins.cond)
             {
-
+            case COND_EQ: break;
+            case COND_NE: b1 = 0b01000000; break;
+            case COND_GT: b1 = 0b10000000; break;
+            case COND_AL: b1 = 0b11000000; break;
             }
-            else 
-            {
-                switch (ins.cond)
-                {
-                case COND_EQ: break;
-                case COND_NE: b1 = 0b01000000; break;
-                case COND_GT: b1 = 0b10000000; break;
-                case COND_AL: b1 = 0b11000000; break;
-                }
 
-                switch (ins.ins)
-                {
-                case INS_ADD:  b1 |= 0b00000000; break;
-                case INS_SUB:  b1 |= 0b00000100; break;
-                case INS_MUL:  b1 |= 0b00001000; break;
-                case INS_DIV:  b1 |= 0b00001100; break;
-                case INS_CMP:  b1 |= 0b00010000; break;
-                case INS_AND:  b1 |= 0b00010100; break;
-                case INS_OR:   b1 |= 0b00011000; break;
-                case INS_NOT:  b1 |= 0b00011100; break;
-                case INS_TEST: b1 |= 0b00100000; break;
-                case INS_MOV:  b1 |= 0b00110100; break;
-                case INS_SHL:  b1 |= 0b00111000; break;
-                case INS_SHR:  b1 |= 0b00111100; break;
-                case INS_JMP:  b1 |= 0b00110000; break;
-                case INS_RET:  /* deside instruction */ break;
-                }
+            switch (ins.ins)
+            {
+            case INS_ADD:  b1 |= 0b00000000; break;
+            case INS_SUB:  b1 |= 0b00000100; break;
+            case INS_MUL:  b1 |= 0b00001000; break;
+            case INS_DIV:  b1 |= 0b00001100; break;
+            case INS_CMP:  b1 |= 0b00010000; break;
+            case INS_AND:  b1 |= 0b00010100; break;
+            case INS_OR:   b1 |= 0b00011000; break;
+            case INS_NOT:  b1 |= 0b00011100; break;
+            case INS_TEST: b1 |= 0b00100000; break;
+            case INS_PUSH: b1 |= 0b00100100; break;
+            case INS_POP: case INS_RET:  b1 |= 0b00101000; break;
+            case INS_IRET: b1 |= 0b00101100; break;
+            case INS_CALL: b1 |= 0b00110000; break;
+            case INS_MOV:  b1 |= 0b00110100; break;
+            case INS_SHL:  b1 |= 0b00111000; break;
+            case INS_SHR:  b1 |= 0b00111100; break;
+            case INS_JMP:
+                if (ins.op1_addr == ADDR_PCREL) b1 |= 0b00000000;
+                else b1 |= 0b00110100;
+            break;
             }
             
+            if (ins.num_ops > 0)
+            { }
         }
         if (ret == 2)
         {
