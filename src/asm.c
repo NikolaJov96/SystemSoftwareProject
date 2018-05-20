@@ -313,7 +313,35 @@ int main(int argc, char** argv)
 
     while (fgets(line, sizeof(line), input_file)) 
     {
+        char label[50];
+        Instruction ins;
+        Directive dir;
+        int ret;
+
         line_num++;
+        preprocess_line(line);
+        if (skip_line(line)) continue;
+        if (parse_section(line) != SEC_NONE) continue;
+        get_label(line, label);
+        if (line[0] == 0) continue;
+
+        ret = ins_parse(&ins, line);
+        if (ret == 0)
+        {
+            int op1_len = ins_len(ins.op1_addr);
+            int op2_len = 0;
+            if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
+            // translate instruction 
+        }
+        if (ret == 2)
+        {
+            ret = dir_parse(&dir, line);
+            if (ret == 0)
+            {
+                // translate directive
+            }
+            dir_arg_free(&dir);
+        }
     }
 
     fclose(input_file);
