@@ -283,7 +283,6 @@ int main(int argc, char** argv)
                 fclose(input_file);
                 exit(1);
             }
-            // error on macro instructions
             acc_offset += ( op1_len > op2_len ? op1_len : op2_len );
         }
         else if (ret != 2)
@@ -355,11 +354,12 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            int op1_len = ins_len(ins.op1_addr);
+            int op1_len = 0;
             int op2_len = 0;
             char b1 = 0;
             char b2 = 0;
-            if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
+            if (ins.num_ops > 0) op1_len = ins_len(ins.op1_addr);
+            if (ins.num_ops > 1) op2_len = ins_len(ins.op2_addr);
 
             if (ins.ins == INS_PUSH || ins.ins == INS_POP || ins.ins == INS_IRET || INS_CALL)
             {

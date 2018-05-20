@@ -93,6 +93,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
             i++;
             start = 1;
         }
+        else if (str[i] == '-') i++;
         if (str[i] >= '0' && str[i] <= '9')
         {
             while (str[i] >= '0' && str[i] <= '9') i++;
@@ -191,6 +192,7 @@ static int ins_op_parse(char* line, int* start_ind, ADDRESSING* adr, int* reg, i
         else if (status == 2)
         {
             int disp_start = i;
+            if (str[i] == '-' && str[i + 1] >= '0' && str[i + 1] <= '9') i++;
             if (str[i] >= '0' && str[i] <= '9')
             {
                 while (str[i] >= '0' && str[i] <= '9') i++;
@@ -344,6 +346,7 @@ int dir_parse(Directive* dir, char* line)
     {
         int start = ind;
 
+        if (line[ind] == '-') ind++;
         if (line[ind] >= '0' && line[ind] <= '9')
         {
             while (line[ind] >= '0' && line[ind] <= '9') ind++;
@@ -401,12 +404,12 @@ int dir_len(Directive* dir, int curr_offset)
     case DIR_WORD: len = 2; break;
     case DIR_LONG: len = 4; break;
     case DIR_ALIGN:
-        if (dir->num_args != 1 || dir->args_head->str[0] != 0) return -1;
+        if (dir->num_args != 1 || dir->args_head->str[0] != 0 || dir->args_head->val < 0) return -1;
         if (curr_offset % dir->args_head->val == 0) return 0;
         return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;
         break;
     case DIR_SKIP:
-        if (dir->num_args != 1 || dir->args_head->str[0] != 0) return -1;
+        if (dir->num_args != 1 || dir->args_head->str[0] != 0 || dir->args_head->val < 0) return -1;
         return dir->args_head->val;
         break;
     case DIR_GLOBAL: return 0; break;
