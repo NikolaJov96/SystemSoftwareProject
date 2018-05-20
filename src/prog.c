@@ -10,6 +10,9 @@ Program* new_program()
     prog->symbol_table_head = 0;
     prog->symbol_table_tail = 0;
     prog->symbol_co = 0;
+    prog->data_buffer = calloc(64, sizeof(char));
+    prog->data_size = 0;
+    prog->buffer_size = 64;
 }
 
 void prog_free(Program** prog)
@@ -22,6 +25,12 @@ void prog_free(Program** prog)
         free(del);
     }
     (*prog)->symbol_table_tail = 0;
+
+    if ((*prog)->data_buffer) free((*prog)->data_buffer);
+    (*prog)->data_buffer = 0;
+    (*prog)->data_size = 0;
+    (*prog)->buffer_size = 0;
+
     free(*prog);
     *prog = 0;
 }
@@ -56,6 +65,21 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
         prog->symbol_table_tail = new_node;
     }
     return 0;
+}
+
+int prog_add_data(Program* prog, char byte)
+{
+    if (prog->data_size >= prog->buffer_size)
+    {
+        char* new_buffer;
+        prog->buffer_size *= 2;
+        new_buffer = (char*)realloc(prog->data_buffer, prog->buffer_size * sizeof(char));
+        if (new_buffer == 0) return 0;
+        prog->data_buffer = new_buffer;
+    }
+
+    prog->data_buffer[prog->data_size++] = byte;
+    return 1;
 }
 
 PROG_RET prog_load(Program** prog, char* path)
