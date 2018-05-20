@@ -246,8 +246,9 @@ int ins_parse(Instruction* ins, char* line)
     else if (ret = starts_with(line, "shl",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHL;
     else if (ret = starts_with(line, "shr",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHR;
     else if (ret = starts_with(line, "jmp",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_JMP;
-    else if (ret = starts_with(line, "ret",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_RET;
+    else if (ret = starts_with(line, "ret",  &ind, 5, "",  "eq",  "ne",  "gt",  "al"))  ins->ins = INS_RET;
     else return 2;
+    if (line[ind] == ' ') ind++;
 
     switch (ret)
     {
@@ -259,6 +260,7 @@ int ins_parse(Instruction* ins, char* line)
     }
 
     ins->num_ops = 0;
+    if (line[ind] == 0) return 0;
     if (!ins_op_parse(line, &ind, &ins->op1_addr, &ins->op1_reg, &ins->op1_val, ins->op1_label)) return 3;
     ins->num_ops = 1;
     if (line[ind] == 0) return 0;
@@ -287,11 +289,12 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
         if (op_ind > 0) return 2; 
         return 0;
         break;
-    case INS_POP: case INS_IRET: case INS_RET:
+    case INS_POP: case INS_IRET:
         if (op_ind > 0) return 2;
         if (addr == ADDR_IMM) return 1;
         return 0;
         break;
+    case INS_RET: return 2;
     }
 }
 

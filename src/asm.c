@@ -245,10 +245,11 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            int op1_len = ins_len(ins.op1_addr);
+            int op1_len = 0;
             int op2_len = 0;
             int addr_error = 0;
-            if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
+            if (ins.num_ops > 0) op1_len = ins_len(ins.op1_addr);
+            if (ins.num_ops > 1) op2_len = ins_len(ins.op2_addr);
             if (op1_len == 4 && op2_len == 4)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
@@ -258,12 +259,14 @@ int main(int argc, char** argv)
                 fclose(input_file);
                 exit(1);
             }
-            addr_error = ins_valid_addr(ins.ins, ins.op1_addr, 0);
-            if (addr_error != 0)
+            if (ins.num_ops > 0 && (addr_error = ins_valid_addr(ins.ins, ins.op1_addr, 0)) != 0)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
-                    printf("Invalid addressing for first operand, line %d : %s\n", line_num, line);
+                    if (addr_error == 1)
+                        printf("Invalid addressing for first operand, line %d : %s\n", line_num, line);
+                    if (addr_error == 2) 
+                        printf("Too many parameters, line %d : %s\n", line_num, line);
                 }
                 fclose(input_file);
                 exit(1);
@@ -272,7 +275,7 @@ int main(int argc, char** argv)
             {
                 if (args.verb != ARGS_VERB_SILENT) 
                 {
-                    if (addr_error == 1) 
+                    if (addr_error == 1)
                         printf("Invalid addressing for second operand, line %d : %s\n", line_num, line);
                     if (addr_error == 2) 
                         printf("Too many parameters, line %d : %s\n", line_num, line);
@@ -280,6 +283,7 @@ int main(int argc, char** argv)
                 fclose(input_file);
                 exit(1);
             }
+            // error on macro instructions
             acc_offset += ( op1_len > op2_len ? op1_len : op2_len );
         }
         else if (ret != 2)
@@ -353,8 +357,43 @@ int main(int argc, char** argv)
         {
             int op1_len = ins_len(ins.op1_addr);
             int op2_len = 0;
+            char b1 = 0;
+            char b2 = 0;
             if (ins.num_ops == 2) op2_len = ins_len(ins.op2_addr);
-            // translate instruction 
+
+            if (ins.ins == INS_PUSH || ins.ins == INS_POP || ins.ins == INS_IRET || INS_CALL)
+            {
+
+            }
+            else 
+            {
+                switch (ins.cond)
+                {
+                case COND_EQ: break;
+                case COND_NE: b1 = 0b01000000; break;
+                case COND_GT: b1 = 0b10000000; break;
+                case COND_AL: b1 = 0b11000000; break;
+                }
+
+                switch (ins.ins)
+                {
+                case INS_ADD:  b1 |= 0b00000000; break;
+                case INS_SUB:  b1 |= 0b00000100; break;
+                case INS_MUL:  b1 |= 0b00001000; break;
+                case INS_DIV:  b1 |= 0b00001100; break;
+                case INS_CMP:  b1 |= 0b00010000; break;
+                case INS_AND:  b1 |= 0b00010100; break;
+                case INS_OR:   b1 |= 0b00011000; break;
+                case INS_NOT:  b1 |= 0b00011100; break;
+                case INS_TEST: b1 |= 0b00100000; break;
+                case INS_MOV:  b1 |= 0b00110100; break;
+                case INS_SHL:  b1 |= 0b00111000; break;
+                case INS_SHR:  b1 |= 0b00111100; break;
+                case INS_JMP:  b1 |= 0b00110000; break;
+                case INS_RET:  /* deside instruction */ break;
+                }
+            }
+            
         }
         if (ret == 2)
         {
