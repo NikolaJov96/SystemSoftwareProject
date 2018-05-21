@@ -306,6 +306,7 @@ int main(int argc, char** argv)
     if (args.verb == ARGS_VERB_VERBOSE) printf("Second pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
+    acc_offset = 0;
 
     while (fgets(line, sizeof(line), input_file)) 
     {
@@ -317,7 +318,11 @@ int main(int argc, char** argv)
         line_num++;
         preprocess_line(line);
         if (skip_line(line)) continue;
-        if (parse_section(line) != SEC_NONE) continue;
+        if (parse_section(line) != SEC_NONE)
+        {
+            acc_offset = 0;
+            continue;
+        }
         get_label(line, label);
         if (line[0] == 0) continue;
 
@@ -374,7 +379,7 @@ int main(int argc, char** argv)
                     case ADDR_IMM: byte = 0b0000000; break;
                     case ADDR_MEMDIR: byte = 0b00010000; break;
                     case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
-                    case ADDR_PCREL: /*pcrel*/ break;
+                    case ADDR_PCREL: byte = 0b00011000 | 0b00000111; break;
                     }
 
                     if (op->label[0] == 0) 
@@ -396,10 +401,12 @@ int main(int argc, char** argv)
             }
             // printf("%d %d %d %d\n", data[0], data[1], data[2], data[3]);
 
+            acc_offset += 2;
             prog_add_data(prog, data[0]);
             prog_add_data(prog, data[1]);
             if (imm_value)
             {
+                acc_offset += 2;
                 prog_add_data(prog, data[0]);
                 prog_add_data(prog, data[0]);
             }
@@ -472,6 +479,8 @@ int main(int argc, char** argv)
                 {
 
                 }
+
+                acc_offset += dir_len(&dir, acc_offset);
             }
             dir_arg_free(&dir);
         }
