@@ -471,13 +471,32 @@ int main(int argc, char** argv)
                         }
                     }
                 }
-                else if (!arg->label[0])
+                else if (dir.dir == DIR_ALIGN || dir.dir == DIR_SKIP)
                 {
-                    
+                    int len = dir_len(&dir, acc_offset);
+                    while (len-- > 0)
+                    {
+                        prog_add_data(prog, 0);
+                    }
                 }
-                else
+                else 
                 {
-
+                    for (arg = dir.args_head, i = 0; arg; arg = arg->next, i++)
+                    {
+                        if (!arg->label[0])
+                        {
+                            int data_point = bytes;
+                            while (data_point-- > 0)
+                            {
+                                prog_add_data(prog, (arg->val >> (8 * data_point)) & 0xFF );
+                            }
+                        }
+                        else
+                        {
+                            //printf("d\n");
+                            // label
+                        }
+                    }
                 }
 
                 acc_offset += dir_len(&dir, acc_offset);
