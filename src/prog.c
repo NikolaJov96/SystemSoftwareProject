@@ -10,26 +10,35 @@ Program* new_program()
     prog->symbol_table_head = 0;
     prog->symbol_table_tail = 0;
     prog->symbol_co = 0;
-    prog->data_buffer = calloc(64, sizeof(char));
-    prog->data_size = 0;
-    prog->buffer_size = 64;
+    prog->data_head = 0;
+    prog->data_tail = 0;
 }
 
 void prog_free(Program** prog)
 {
-    SymbolTableNode* del;
+    SymbolTableNode* del_sym;
+    DataListNode* del_data;
+
     while ((*prog)->symbol_table_head)
     {
-        del = (*prog)->symbol_table_head;
+        del_sym = (*prog)->symbol_table_head;
         (*prog)->symbol_table_head = (*prog)->symbol_table_head->next;
-        free(del);
+        free(del_sym);
     }
     (*prog)->symbol_table_tail = 0;
 
-    if ((*prog)->data_buffer) free((*prog)->data_buffer);
-    (*prog)->data_buffer = 0;
-    (*prog)->data_size = 0;
-    (*prog)->buffer_size = 0;
+    while ((*prog)->data_head)
+    {
+        del_data = (*prog)->data_head;
+        (*prog)->data_head = (*prog)->data_head->next;
+
+        if (del_data->data_buffer) free(del_data->data_buffer);
+        del_data->data_buffer = 0;
+        del_data->data_size = 0;
+        del_data->buffer_size = 0;
+        free(del_data);
+    }
+    (*prog)->data_tail = 0;
 
     free(*prog);
     *prog = 0;
@@ -81,18 +90,41 @@ int prog_make_global(Program* prog, char* label)
     return 0;
 }
 
+void prog_new_seg(Program* prog)
+{
+    DataListNode* new_node;
+    if (!prog) return;
+
+    new_node = malloc(sizeof(DataListNode));
+    new_node->data_buffer = calloc(64, sizeof(char));
+    new_node->data_size = 0;
+    new_node->buffer_size = 64;
+    new_node->next = 0;
+
+    if (!prog->data_head)
+    {
+        prog->data_head = new_node;
+        prog->data_tail = new_node;
+    }
+    else{
+        prog->data_tail->next = new_node;
+        prog->data_tail = new_node;
+    }
+}
+
 int prog_add_data(Program* prog, char byte)
 {
-    if (prog->data_size >= prog->buffer_size)
+    if (!prog->data_head) return 0;
+    if (prog->data_tail->data_size >= prog->data_tail->buffer_size)
     {
         char* new_buffer;
-        prog->buffer_size *= 2;
-        new_buffer = (char*)realloc(prog->data_buffer, prog->buffer_size * sizeof(char));
+        prog->data_tail->buffer_size *= 2;
+        new_buffer = (char*)realloc(prog->data_tail->data_buffer, prog->data_tail->buffer_size * sizeof(char));
         if (new_buffer == 0) return 0;
-        prog->data_buffer = new_buffer;
+        prog->data_tail->data_buffer = new_buffer;
     }
 
-    prog->data_buffer[prog->data_size++] = byte;
+    prog->data_tail->data_buffer[prog->data_tail->data_size++] = byte;
     return 1;
 }
 
@@ -114,30 +146,38 @@ PROG_RET prog_load(Program** prog, char* path)
 PROG_RET prog_store(Program* prog, char* path)
 {
     FILE* file;
-    SymbolTableNode* node;
+    SymbolTableNode* sym_node;
+    DataListNode* data_node;
     int i;
 
     if (!prog) return PROG_ERT_INVALID_PROGRAM;
     file = fopen(path, "w");
     if (!file) return PROG_RET_INVALID_PATH;
 
-    for (node = prog->symbol_table_head; node; node = node->next)
+    for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
     {
         fprintf(file, "%d %s %d %d %d %d\n",
-            node->type, node->name, node->sym_id, node->section_id, node->offset, node->reach);
+            sym_node->type, sym_node->name, sym_node->sym_id, sym_node->section_id, 
+            sym_node->offset, sym_node->reach);
     }
+    fprintf(file, "\n");
 
-    for (i = 0; i < prog->data_size; i++)
+    for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
-        char c1 = ((prog->data_buffer[i] >> 4 ) & 0b1111) + '0';
-        char c2 = (prog->data_buffer[i] & 0b1111) + '0';
-        if (c1 > '9') c1 = c1 - '9' - 1 + 'A';
-        if (c2 > '9') c2 = c2 - '9' - 1 + 'A';
-        fprintf(file, "%c%c ", c1, c2);
-        if ((i + 1) % 10 == 0) 
+        for (i = 0; i < data_node->data_size; i++)
         {
-            fprintf(file, "\n");
+            char c1 = ((data_node->data_buffer[i] >> 4 ) & 0b1111) + '0';
+            char c2 = (data_node->data_buffer[i] & 0b1111) + '0';
+            if (c1 > '9') c1 = c1 - '9' - 1 + 'A';
+            if (c2 > '9') c2 = c2 - '9' - 1 + 'A';
+            fprintf(file, "%c%c ", c1, c2);
+            if ((i + 1) % 10 == 0) 
+            {
+                fprintf(file, "\n");
+            }
         }
+        if ((i + 1) % 10 != 0) fprintf(file, "\n");
+        fprintf(file, "\n");
     }
 
     fclose(file);

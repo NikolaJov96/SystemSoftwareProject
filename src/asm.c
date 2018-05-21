@@ -321,6 +321,7 @@ int main(int argc, char** argv)
         if (parse_section(line) != SEC_NONE)
         {
             acc_offset = 0;
+            prog_new_seg(prog);
             continue;
         }
         get_label(line, label);

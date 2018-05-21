@@ -17,20 +17,28 @@ typedef struct SymbolTableNode
     struct SymbolTableNode* next;
 } SymbolTableNode;
 
+typedef struct DataListNode
+{
+    char* data_buffer;
+    int data_size;
+    int buffer_size;
+    struct DataListNode* next;
+} DataListNode;
+
 typedef struct Program
 {
     SymbolTableNode* symbol_table_head;
     SymbolTableNode* symbol_table_tail;
     int symbol_co;
-    char* data_buffer;
-    int data_size;
-    int buffer_size;
+    DataListNode* data_head;
+    DataListNode* data_tail;
 } Program;
 
 Program* new_program();
 void prog_free(Program** prog);
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset);
 int prog_make_global(Program* prog, char* label);
+void prog_new_seg(Program* prog);
 int prog_add_data(Program* prog, char byte);
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);
