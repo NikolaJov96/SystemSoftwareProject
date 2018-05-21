@@ -167,6 +167,9 @@ int main(int argc, char** argv)
         if (new_sec != SEC_NONE)
         {
             int status;
+
+            prog_set_seg_len(prog, acc_offset);
+
             if (section_used[new_sec]++ > 0)
             {
                 sprintf(err_line, "Already used section, line %d : %s", line_num, line);
@@ -232,7 +235,7 @@ int main(int argc, char** argv)
         ret = ins_parse(&ins, line);
         if (ret == 0)
         {
-            int max_op_len = 0, op_len = 0, ind = 0;
+            int max_op_len = 2, op_len = 0, ind = 0;
             int addr_error = 0;
             InsOp* op;
             

@@ -112,6 +112,18 @@ void prog_new_seg(Program* prog)
     }
 }
 
+void prog_set_seg_len(Program* prog, int len)
+{
+    SymbolTableNode* section = 0;
+    SymbolTableNode* sym;
+    for (sym = prog->symbol_table_head; sym; sym = sym->next)
+    {
+        if (sym->type == SYM_SECTION) section = sym;
+    }
+    if (!section) return;
+    section->offset = len;
+}
+
 int prog_add_data(Program* prog, char byte)
 {
     if (!prog->data_head) return 0;
