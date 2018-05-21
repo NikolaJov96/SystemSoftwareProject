@@ -30,6 +30,7 @@ typedef struct Program
 Program* new_program();
 void prog_free(Program** prog);
 int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset);
+int prog_make_global(Program* prog, char* label);
 int prog_add_data(Program* prog, char byte);
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);

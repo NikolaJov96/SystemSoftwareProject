@@ -67,6 +67,20 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
     return 0;
 }
 
+int prog_make_global(Program* prog, char* label)
+{
+    SymbolTableNode* node;
+    for (node = prog->symbol_table_head; node; node = node->next)
+    {
+        if (strcmp(label, node->name) == 0)
+        {
+            node->reach = REACH_GLOBAL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int prog_add_data(Program* prog, char byte)
 {
     if (prog->data_size >= prog->buffer_size)

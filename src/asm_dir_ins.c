@@ -434,6 +434,7 @@ int dir_parse(Directive* dir, char* line)
 
                 new_arg = malloc(sizeof(DirArg));
                 memcpy(new_arg->label, label, ind - start);
+                new_arg->label[ind-start] = 0;
                 new_arg->val = 0;
                 dir_add_arg(dir, new_arg);
             }

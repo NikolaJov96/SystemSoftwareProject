@@ -416,6 +416,7 @@ int main(int argc, char** argv)
                 long label, number, neg, bytes;
                 int i;
                 DirArg* arg;
+
                 switch (dir.dir)
                 {
                 case DIR_CHAR: label = 0; number = 1; neg = 1; bytes = 1; break;
@@ -424,6 +425,7 @@ int main(int argc, char** argv)
                 case DIR_ALIGN: case DIR_SKIP: label = 0; number = 1; neg = 0; bytes = 2; break;
                 case DIR_GLOBAL: label = 1; number = 0; neg = 0; bytes = 2; break;
                 }
+                
                 for (arg = dir.args_head, i = 0; arg; arg = arg->next, i++)
                 {
                     long abs_val = arg->val;
@@ -449,6 +451,26 @@ int main(int argc, char** argv)
                         sprintf(err_line, "Value %d too large, line %d : %s\n", i + 1, line_num, line);
                         exit_prog(args.verb, input_file);
                     }
+                }
+
+                if (dir.dir == DIR_GLOBAL)
+                {
+                    for (arg = dir.args_head, i = 0; arg; arg = arg->next, i++)
+                    {
+                        if (!prog_make_global(prog, arg->label))
+                        {
+                            sprintf(err_line, "Invalid label %d, line %d : %s\n", i + 1, line_num, line);
+                            exit_prog(args.verb, input_file);
+                        }
+                    }
+                }
+                else if (!arg->label[0])
+                {
+                    
+                }
+                else
+                {
+
                 }
             }
             dir_arg_free(&dir);
