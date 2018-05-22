@@ -18,6 +18,7 @@ void prog_free(Program** prog)
 {
     SymbolTableNode* del_sym;
     DataListNode* del_data;
+    RelListNode* del_rel;
 
     while ((*prog)->symbol_table_head)
     {
@@ -36,6 +37,15 @@ void prog_free(Program** prog)
         del_data->data_buffer = 0;
         del_data->data_size = 0;
         del_data->buffer_size = 0;
+
+        while (del_data->rel_head)
+        {
+            del_rel = del_data->rel_head;
+            del_data->rel_head = del_data->rel_head->next;
+            free(del_rel);
+        }
+        del_data->rel_tail = 0;
+
         free(del_data);
     }
     (*prog)->data_tail = 0;
@@ -63,16 +73,11 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
     new_node->offset = offset;
     new_node->reach = REACH_LOCAL;
     new_node->next = 0;
-    if (!prog->symbol_table_head)
-    {
-        prog->symbol_table_head = new_node;
-        prog->symbol_table_tail = new_node;
-    }
-    else
-    {
-        prog->symbol_table_tail->next = new_node;
-        prog->symbol_table_tail = new_node;
-    }
+
+    if (!prog->symbol_table_head) prog->symbol_table_head = new_node;
+    else prog->symbol_table_tail->next = new_node;
+    prog->symbol_table_tail = new_node;
+
     return 0;
 }
 
@@ -99,17 +104,13 @@ void prog_new_seg(Program* prog)
     new_node->data_buffer = calloc(64, sizeof(char));
     new_node->data_size = 0;
     new_node->buffer_size = 64;
+    new_node->rel_head = 0;
+    new_node->rel_tail = 0;
     new_node->next = 0;
 
-    if (!prog->data_head)
-    {
-        prog->data_head = new_node;
-        prog->data_tail = new_node;
-    }
-    else{
-        prog->data_tail->next = new_node;
-        prog->data_tail = new_node;
-    }
+    if (!prog->data_head) prog->data_head = new_node;
+    else prog->data_tail->next = new_node;
+    prog->data_tail = new_node;
 }
 
 void prog_set_seg_len(Program* prog, int len)
@@ -138,6 +139,22 @@ int prog_add_data(Program* prog, char byte)
 
     prog->data_tail->data_buffer[prog->data_tail->data_size++] = byte;
     return 1;
+}
+
+int prog_add_rel(Program* prog, int offset, RELOCATION rel, int sym_id)
+{
+    RelListNode* new_rel;
+    if (!prog || !prog->data_head) return 0;
+
+    new_rel = malloc(sizeof(RelListNode));
+    new_rel->offset = offset;
+    new_rel->rel = rel;
+    new_rel->sym_id = sym_id;
+    new_rel->next = 0;
+
+    if (!prog->data_tail->rel_head) prog->data_tail->rel_head = new_rel;
+    else prog->data_tail->rel_tail->next = new_rel;
+    prog->data_tail->rel_tail = new_rel;
 }
 
 PROG_RET prog_load(Program** prog, char* path)
@@ -172,10 +189,14 @@ PROG_RET prog_store(Program* prog, char* path)
             sym_node->type, sym_node->name, sym_node->sym_id, sym_node->section_id, 
             sym_node->offset, sym_node->reach);
     }
-    fprintf(file, "\n");
 
+    sym_node = prog->symbol_table_head;
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
+        while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
+        fprintf(file, "%s\n", sym_node->name);
+        sym_node = sym_node->next;
+
         for (i = 0; i < data_node->data_size; i++)
         {
             char c1 = ((data_node->data_buffer[i] >> 4 ) & 0b1111) + '0';
@@ -189,7 +210,6 @@ PROG_RET prog_store(Program* prog, char* path)
             }
         }
         if ((i + 1) % 10 != 0) fprintf(file, "\n");
-        fprintf(file, "\n");
     }
 
     fclose(file);

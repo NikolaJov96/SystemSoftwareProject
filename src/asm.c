@@ -314,6 +314,7 @@ int main(int argc, char** argv)
     while (fgets(line, sizeof(line), input_file)) 
     {
         char label[50];
+        SECTION sec;
         Instruction ins;
         Directive dir;
         int ret;
@@ -321,9 +322,11 @@ int main(int argc, char** argv)
         line_num++;
         preprocess_line(line);
         if (skip_line(line)) continue;
-        if (parse_section(line) != SEC_NONE)
+        sec = parse_section(line);
+        if (sec != SEC_NONE)
         {
             acc_offset = 0;
+            if (sec == SEC_END) break;
             prog_new_seg(prog);
             continue;
         }
@@ -403,7 +406,6 @@ int main(int argc, char** argv)
                 if (i == 0) { data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5; }
                 else if (i == 1) { data[1] |= byte & 0b11111; }
             }
-            // printf("%d %d %d %d\n", data[0], data[1], data[2], data[3]);
 
             acc_offset += 2;
             prog_add_data(prog, data[0]);
@@ -411,16 +413,13 @@ int main(int argc, char** argv)
             if (imm_value)
             {
                 acc_offset += 2;
-                prog_add_data(prog, data[0]);
-                prog_add_data(prog, data[0]);
+                prog_add_data(prog, data[2]);
+                prog_add_data(prog, data[3]);
             }
         }
         ins_op_free(&ins);
         if (ret == 2)
         {
-            // sta je labela u direktivama
-            // mov pc?
-            // test
             ret = dir_parse(&dir, line);
             if (ret == 0)
             {
@@ -497,8 +496,7 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            //printf("d\n");
-                            // label
+                            // relocation
                         }
                     }
                 }
