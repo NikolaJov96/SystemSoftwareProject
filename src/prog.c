@@ -180,15 +180,102 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
     return 1;
 }
 
-PROG_RET prog_load(Program** prog, char* path)
+static int is_hex(char c)
+{
+    if (c >= '0' && c <= '9') return 1;
+    if (c >= 'A' && c <= 'F') return 1;
+    return 0;
+}
+
+PROG_RET prog_load(Program* prog, char* path)
 {
     FILE* file;
+    char line[100];
 
-    prog = 0;
+    if (!prog) return PROG_ERT_INVALID_PROGRAM;
     file = fopen(path, "r");
     if (!file) return PROG_RET_INVALID_PATH;
 
-    // fscanf()
+    while(1)
+    {
+        SymbolTableNode* new_sym;
+        int type;
+        char name[50];
+        int sym_id;
+        int section_id;
+        int offset;
+        int reach;
+
+        if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+        if (sscanf(line, "%d %s %d %d %d %d", &type, name, &sym_id, &section_id, &offset, &reach) != 6) break;
+
+        new_sym = malloc(sizeof(SymbolTableNode));
+        new_sym->type = (SYM_TYPE)type;
+        strcpy(new_sym->name, name);
+        new_sym->sym_id = sym_id;
+        new_sym->section_id = section_id;
+        new_sym->offset = offset;
+        new_sym->reach = (SYM_REACH)reach;
+        new_sym->next = 0;
+
+        if (!prog->symbol_table_head) prog->symbol_table_head = new_sym;
+        else prog->symbol_table_tail->next = new_sym;
+        prog->symbol_table_tail = new_sym;
+    }
+    
+    while (line[0])
+    {
+        int ind = 0;
+        if (line[ind++] != '.') return PROG_ERT_INVALID_PROGRAM;
+        while (line[ind] && line[ind] != '\n')
+        {
+            if (line[ind] < 'a' || line[ind] > 'z') return PROG_ERT_INVALID_PROGRAM;
+            ind++;
+        }
+
+        prog_new_seg(prog);
+        while (1)
+        {
+            RelListNode* new_rel;
+            int offset;
+            int rel;
+            int sym_id;
+            char end;
+
+            if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+            if (sscanf(line, "%x %d %d%c", &offset, &rel, &sym_id, &end) != 4) break;
+            if (end != '\n') break;
+
+            new_rel = malloc(sizeof(RelListNode));
+            new_rel->offset = offset;
+            new_rel->rel = (RELOCATION)rel;
+            new_rel->sym_id = sym_id;
+            new_rel->next = 0;
+
+            if (!prog->data_tail->rel_head) prog->data_tail->rel_head = new_rel;
+            else prog->data_tail->rel_tail->next = new_rel;
+            prog->data_tail->rel_tail = new_rel;
+        }
+        while (1)
+        {
+            int valid = 1;
+            if (line[0] == '.') break;
+
+            for (ind = 0; line[ind] && line[ind + 1] && line[ind + 2]; ind += 3)
+            {
+                char byte;
+                if (!is_hex(line[ind]) || !is_hex(line[ind+1]) || line[ind+2] != ' ') return PROG_ERT_INVALID_PROGRAM;
+                sscanf(line + ind, "%02hhx", &byte);
+                prog_add_data(prog, byte);
+            }
+
+            if (!fgets(line, sizeof(line), file))
+            {
+                line[0] = 0;
+                break;
+            }
+        }
+    }
 
     fclose(file);
 
