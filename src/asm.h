@@ -18,6 +18,7 @@ typedef enum { DIR_CHAR, DIR_WORD, DIR_LONG, DIR_ALIGN, DIR_SKIP, DIR_GLOBAL } D
 typedef struct AsmArgs
 {
     ARGS_VERB verb;
+    int start_addr;
     char input_file_name[256];
     char output_file_name[256];
 } AsmArgs;

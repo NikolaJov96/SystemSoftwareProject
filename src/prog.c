@@ -10,6 +10,7 @@ Program* new_program()
     prog->symbol_table_head = 0;
     prog->symbol_table_tail = 0;
     prog->symbol_co = 0;
+    prog->start_addr = -1;
     prog->data_head = 0;
     prog->data_tail = 0;
 }
@@ -191,11 +192,16 @@ PROG_RET prog_load(Program* prog, char* path)
 {
     FILE* file;
     char line[100];
+    char end;
 
     if (!prog) return PROG_ERT_INVALID_PROGRAM;
     file = fopen(path, "r");
     if (!file) return PROG_RET_INVALID_PATH;
 
+    if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+    if (sscanf(line, "%d%c", &prog->start_addr, &end) != 2) return PROG_ERT_INVALID_PROGRAM;
+    if (end != '\n') return PROG_ERT_INVALID_PROGRAM;
+    
     while(1)
     {
         SymbolTableNode* new_sym;
@@ -240,7 +246,6 @@ PROG_RET prog_load(Program* prog, char* path)
             int offset;
             int rel;
             int sym_id;
-            char end;
 
             if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
             if (sscanf(line, "%x %d %d%c", &offset, &rel, &sym_id, &end) != 4) break;
@@ -278,7 +283,6 @@ PROG_RET prog_load(Program* prog, char* path)
     }
 
     fclose(file);
-
     return PROG_RET_SUCCESS;
 }
 
@@ -293,6 +297,7 @@ PROG_RET prog_store(Program* prog, char* path)
     file = fopen(path, "w");
     if (!file) return PROG_RET_INVALID_PATH;
 
+    fprintf(file, "%d\n", prog->start_addr);
     for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
     {
         fprintf(file, "%d %s %d %d %d %d\n",
@@ -308,16 +313,16 @@ PROG_RET prog_store(Program* prog, char* path)
         while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
         fprintf(file, "%s\n", sym_node->name);
         sym_node = sym_node->next;
-
         for (rel_node = data_node->rel_head; rel_node; rel_node = rel_node->next)
         {
             fprintf(file, "%08x %d %d\n", rel_node->offset, rel_node->rel, rel_node->sym_id);
         }
-
+        
         for (i = 0; i < data_node->data_size; i++)
         {
             char c1 = ((data_node->data_buffer[i] >> 4 ) & 0b1111) + '0';
             char c2 = (data_node->data_buffer[i] & 0b1111) + '0';
+            
             if (c1 > '9') c1 = c1 - '9' - 1 + 'A';
             if (c2 > '9') c2 = c2 - '9' - 1 + 'A';
             fprintf(file, "%c%c ", c1, c2);
@@ -328,7 +333,7 @@ PROG_RET prog_store(Program* prog, char* path)
         }
         if ((i + 1) % 10 != 0) fprintf(file, "\n");
     }
-
+    
     fclose(file);
     return PROG_RET_SUCCESS;
 }

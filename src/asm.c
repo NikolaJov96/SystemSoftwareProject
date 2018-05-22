@@ -139,6 +139,7 @@ int main(int argc, char** argv)
     fclose(output_file);
 
     prog = new_program();
+    prog->start_addr = args.start_addr;
 
     if (args.verb == ARGS_VERB_VERBOSE) printf("First pass started.\n");
     input_file = fopen(args.input_file_name, "r");

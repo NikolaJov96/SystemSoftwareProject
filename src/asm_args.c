@@ -1,5 +1,6 @@
 #include "asm.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
@@ -12,6 +13,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         args->verb = ARGS_VERB_NORMAL;
         args->input_file_name[0] = 0;
         args->output_file_name[0] = 0;
+        args->start_addr = -1;
+        break;
+    case 'a': 
+        args->start_addr = atoi(arg);
+        if (args->start_addr < 0 || (arg[0] != '0' && args->start_addr == 0))
+        {
+            argp_error(state, "Invalid starting address");
+            return ARGP_ERR_UNKNOWN;
+        }
         break;
     case 'v':
         if (args->verb != ARGS_VERB_NORMAL) return ARGP_ERR_UNKNOWN;
@@ -45,9 +55,10 @@ void parse_args(int argc, char** argv, AsmArgs* args)
     const char* argp_program_bug_address = "jovanovicn.96@gmail.com";
     static char* doc = "Your program description.";
     static char* args_doc = "INPUTFILE OUTPUTFILE";
-    static struct argp_option options[] = { 
-        { "verbose", 'v', 0, 0, "Print detailed info about progress." },
-        { "silent", 's', 0, 0, "Do not print anything." },
+    static struct argp_option options[] = {
+        { "address", 'a', "ADDR", 0, "Print detailed info about progress." },
+        { "verbose", 'v',      0, 0, "Print detailed info about progress." },
+        { "silent",  's',      0, 0, "Do not print anything." },
         { 0 } 
     };
     struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
