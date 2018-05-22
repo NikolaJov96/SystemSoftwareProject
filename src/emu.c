@@ -9,11 +9,13 @@ int main(int argc, char** argv)
 {
     EmuArgs args;
     Program* prog;
+    Program* linked_prog;
 
     parse_args(argc, argv, &args);
 
     printf("emulator\n");
 
+    linked_prog = new_program();
     prog = new_program();
     switch(prog_load(prog, "out.txt"))
     {

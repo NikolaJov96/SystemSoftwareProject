@@ -70,7 +70,7 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
     new_node->type = type;
     strcpy(new_node->name, name);
     new_node->sym_id = ++prog->symbol_co;
-    new_node->section_id = ( type == SYM_SECTION ? new_node->sym_id : prog->symbol_table_tail->sym_id );
+    new_node->section_id = ( type == SYM_SECTION ? new_node->sym_id : prog->symbol_table_tail->section_id );
     new_node->offset = offset;
     new_node->reach = REACH_LOCAL;
     new_node->next = 0;
@@ -107,7 +107,7 @@ int prog_make_global(Program* prog, char* label)
     else prog->symbol_table_tail->next = node;
     prog->symbol_table_tail = node;
 
-    return 0;
+    return 1;
 }
 
 void prog_new_seg(Program* prog)
