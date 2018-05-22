@@ -11,9 +11,9 @@ ASM_DEPS=$(patsubst %,$(SDIR)/%,$(ASM_DEPS_))
 ASM_OBJ_=prog.o asm_args.o asm_dir_ins.o asm.o
 ASM_OBJ=$(patsubst %,$(ODIR)/%,$(ASM_OBJ_))
 
-EMU_DEPS_=
+EMU_DEPS_=emu.h
 EMU_DEPS=$(patsubst %,$(SDIR)/%,$(EMU_DEPS_))
-EMU_OBJ_=prog.o emu.o
+EMU_OBJ_=prog.o emu_args.o emu.o
 EMU_OBJ=$(patsubst %,$(ODIR)/%,$(EMU_OBJ_))
 
 .PHONY: all
@@ -42,6 +42,10 @@ $(ODIR)/asm_args.o: $(SDIR)/asm_args.c $(ASM_DEPS)
 $(ODIR)/emu.o: $(SDIR)/emu.c $(EMU_DEPS)
 	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $<
+
+$(ODIR)/emu_args.o: $(SDIR)/emu_args.c $(EMU_DEPS)
+	mkdir -p $(ODIR)
+	$(CC) -c -o $@ $<	
 
 $(ODIR)/prog.o: $(SDIR)/prog.c $(PROG_DEPS)
 	mkdir -p $(ODIR)

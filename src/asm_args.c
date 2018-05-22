@@ -46,8 +46,8 @@ void parse_args(int argc, char** argv, AsmArgs* args)
     static char* doc = "Your program description.";
     static char* args_doc = "INPUTFILE OUTPUTFILE";
     static struct argp_option options[] = { 
-        { "silent", 's', 0, 0, "Do not print anything."},
-        { "verbose", 'v', 0, 0, "Print detailed info about progress."},
+        { "verbose", 'v', 0, 0, "Print detailed info about progress." },
+        { "silent", 's', 0, 0, "Do not print anything." },
         { 0 } 
     };
     struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
