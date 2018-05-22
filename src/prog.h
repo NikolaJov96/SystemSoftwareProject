@@ -52,7 +52,7 @@ int prog_make_global(Program* prog, char* label);
 void prog_new_seg(Program* prog);
 void prog_set_seg_len(Program* prog, int len);
 int prog_add_data(Program* prog, char byte);
-int prog_add_rel(Program* prog, int offset, RELOCATION rel, int sym_id);
+int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym);
 PROG_RET prog_load(Program** prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);
 

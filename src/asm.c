@@ -272,9 +272,8 @@ int main(int argc, char** argv)
             {
                 switch (ret)
                 {
-                case 1: case 5: printf("Fatal instruction error, line %d : %s\n", line_num, line); break;
-                case 3: printf("Invalid first operand, line %d : %s\n", line_num, line); break;
-                case 4: printf("Invalid second operand, line %d : %s\n", line_num, line); break;
+                case 1: printf("Fatal instruction error, line %d : %s\n", line_num, line); break;
+                case 3: printf("Invalid operand, line %d : %s\n", line_num, line); break;
                 }
             }
             fclose(input_file);
@@ -398,6 +397,11 @@ int main(int argc, char** argv)
                     else
                     {
                         // relocation
+                        if (!prog_add_rel(prog, acc_offset + 2, REL_16, op->label))
+                        {
+                            sprintf(err_line, "Unknown label '%s', line %d : %s", op->label, line_num, line);
+                            exit_prog(args.verb, input_file);
+                        }
                         data[2] = 0;
                         data[3] = 0;
                     }
@@ -443,22 +447,22 @@ int main(int argc, char** argv)
                     else abs_val++;
                     if (arg->label[0] && !label)
                     {
-                        sprintf(err_line, "Cannot use label with this directive, line %d : %s\n", line_num, line);
+                        sprintf(err_line, "Cannot use label with this directive, line %d : %s", line_num, line);
                         exit_prog(args.verb, input_file);
                     }
                     if (!arg->label[0] && !number)
                     {
-                        sprintf(err_line, "Cannot use number with this directive, line %d : %s\n", line_num, line);
+                        sprintf(err_line, "Cannot use number with this directive, line %d : %s", line_num, line);
                         exit_prog(args.verb, input_file);
                     }
                     if (arg->val < 0 && !neg)
                     {
-                        sprintf(err_line, "Cannot use negative value with this directive, line %d : %s\n", line_num, line);
+                        sprintf(err_line, "Cannot use negative value with this directive, line %d : %s", line_num, line);
                         exit_prog(args.verb, input_file);
                     }
                     if (abs_val > (1l << (bytes * 8 - 1)))
                     {
-                        sprintf(err_line, "Value %d too large, line %d : %s\n", i + 1, line_num, line);
+                        sprintf(err_line, "Value %d too large, line %d : %s", i + 1, line_num, line);
                         exit_prog(args.verb, input_file);
                     }
                 }

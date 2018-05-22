@@ -211,11 +211,11 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
                 {
                     char num[31];
                     InsOp* new_op = calloc(1, sizeof(InsOp));
-                    i += 2;
-                    *start_ind += i - 1;
+
+                    *start_ind += i + 1;
                     new_op->addr = ADDR_REGINDDISP;
-                    memcpy(num, str + disp_start, i);
-                    num[i] = 0;
+                    memcpy(num, str + disp_start, i - disp_start);
+                    num[i - disp_start] = 0;
                     new_op->val = atoi(num);
                     return new_op;
                 }
@@ -227,16 +227,15 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
                 {
                     char label[50];
                     InsOp* new_op;
-                    memcpy(label, str + disp_start, i - 1);
-                    label[i] = 0;
+                    memcpy(label, str + disp_start, i - disp_start);
+                    label[i - disp_start] = 0;
                     if (check_reserved(label)) return 0;
 
                     new_op = calloc(1, sizeof(InsOp));
-                    i += 2;
-                    *start_ind += i - 1;
+                    *start_ind += i + 1;
                     new_op->addr = ADDR_REGINDDISP;
-                    memcpy(new_op->label, str + disp_start, i - 1);
-                    new_op->label[i] = 0;
+                    memcpy(new_op->label, str + disp_start, i - disp_start);
+                    new_op->label[i - disp_start] = 0;
                     return new_op;
                 }
             }

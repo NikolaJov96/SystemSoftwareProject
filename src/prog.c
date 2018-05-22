@@ -92,6 +92,20 @@ int prog_make_global(Program* prog, char* label)
             return 1;
         }
     }
+    
+    node = malloc(sizeof(SymbolTableNode));
+    node->type = SYM_LABEL;
+    strcpy(node->name, label);
+    node->sym_id = ++prog->symbol_co;
+    node->section_id = 0; // spacial identification for exported and imported?
+    node->offset = 0;
+    node->reach = REACH_GLOBAL;
+    node->next = 0;
+
+    if (!prog->symbol_table_head) prog->symbol_table_head = node;
+    else prog->symbol_table_tail->next = node;
+    prog->symbol_table_tail = node;
+
     return 0;
 }
 
@@ -141,20 +155,29 @@ int prog_add_data(Program* prog, char byte)
     return 1;
 }
 
-int prog_add_rel(Program* prog, int offset, RELOCATION rel, int sym_id)
+int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
 {
     RelListNode* new_rel;
+    SymbolTableNode* sym_node;
     if (!prog || !prog->data_head) return 0;
+
+    for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
+    {
+        if (strcmp(sym_node->name, sym) == 0) break;
+    }
+    if (!sym_node) return 0;
 
     new_rel = malloc(sizeof(RelListNode));
     new_rel->offset = offset;
     new_rel->rel = rel;
-    new_rel->sym_id = sym_id;
+    new_rel->sym_id = sym_node->sym_id;
     new_rel->next = 0;
 
     if (!prog->data_tail->rel_head) prog->data_tail->rel_head = new_rel;
     else prog->data_tail->rel_tail->next = new_rel;
     prog->data_tail->rel_tail = new_rel;
+
+    return 1;
 }
 
 PROG_RET prog_load(Program** prog, char* path)
@@ -193,9 +216,16 @@ PROG_RET prog_store(Program* prog, char* path)
     sym_node = prog->symbol_table_head;
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
+        RelListNode* rel_node;
+
         while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
         fprintf(file, "%s\n", sym_node->name);
         sym_node = sym_node->next;
+
+        for (rel_node = data_node->rel_head; rel_node; rel_node = rel_node->next)
+        {
+            fprintf(file, "%08x %d %d\n", rel_node->offset, rel_node->rel, rel_node->sym_id);
+        }
 
         for (i = 0; i < data_node->data_size; i++)
         {
