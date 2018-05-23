@@ -41,9 +41,9 @@ typedef struct Program
     SymbolTableNode* symbol_table_head;
     SymbolTableNode* symbol_table_tail;
     int symbol_co;
-    int start_addr;
     DataListNode* data_head;
     DataListNode* data_tail;
+    int section_co;
 } Program;
 
 Program* new_program();

@@ -3,6 +3,8 @@ obj/
 
 asm
 emu
-in.txt
-out.txt
+in1.txt
+in2.txt
 out1.txt
+out2.txt
+out_l.txt

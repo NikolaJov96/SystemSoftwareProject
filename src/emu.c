@@ -70,32 +70,44 @@ int main(int argc, char** argv)
             printf("Input file invalid content: %s.\n", input_node->file); exit(1); break;
         }
 
-        // prog->start_addr = ...
+        if (args.verb == ARGS_VERB_VERBOSE)
+        {
+            printf("  Linking file: %s\n", input_node->file);
+        }
+
         if (!prog_relocate(prog))
         {
-            sprintf(err_line, "Error reolving local relocations in %s\n", input_node->file);
+            sprintf(err_line, "Error resolving local relocations in %s\n", input_node->file);
             exit_prog(args.verb, file);
         }
-        if (prog_store(prog, args.link_target) != PROG_RET_SUCCESS)
-        {
-            printf("Colud not save linked object file\n"); 
-            exit(1);
-        }
+
         if (!prog_link(linked_prog, prog))
         {
             sprintf(err_line, "Error linking %s to the rest.\n", input_node->file);
             exit_prog(args.verb, file);
         }
+
         prog_free(&prog);
     }
-    
+
+    if (args.verb == ARGS_VERB_VERBOSE) printf("  Linking combined file.\n");
+
+    if (!prog_relocate(linked_prog))
+    {
+        sprintf(err_line, "Error resolving local relocations in linked program.\n");
+        exit_prog(args.verb, 0);
+    }
+
+    prog = new_program();
+    prog_link(prog, linked_prog);
+
     if (args.do_link)
     {
-        /*if (prog_store(linked_prog, args.link_target) != PROG_RET_SUCCESS)
+        if (prog_store(prog, args.link_target) != PROG_RET_SUCCESS)
         {
             printf("Colud not save linked object file\n"); 
             exit(1);
-        }*/
+        }
     }
 
     if (args.do_build)

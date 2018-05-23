@@ -10,9 +10,9 @@ Program* new_program()
     prog->symbol_table_head = 0;
     prog->symbol_table_tail = 0;
     prog->symbol_co = 0;
-    prog->start_addr = -1;
     prog->data_head = 0;
     prog->data_tail = 0;
+    prog->section_co = 0;
 }
 
 void prog_free(Program** prog)
@@ -50,6 +50,7 @@ void prog_free(Program** prog)
         free(del_data);
     }
     (*prog)->data_tail = 0;
+    (*prog)->section_co = 0;
 
     free(*prog);
     *prog = 0;
@@ -59,22 +60,24 @@ int prog_add_sym(Program* prog, SYM_TYPE type, char* name, int offset)
 {
     SymbolTableNode* new_node;
     SymbolTableNode* temp_node = prog->symbol_table_head;
+    
     if (!prog || !name || strlen(name) >= 50) return 1;
-    while (temp_node)
+    while (temp_node && name[0] != '.')
     {
         if (strcmp(temp_node->name, name) == 0) return 2;
         temp_node = temp_node->next;
     }
-
+    
     new_node = malloc(sizeof(SymbolTableNode));
     new_node->type = type;
     strcpy(new_node->name, name);
     new_node->sym_id = ++prog->symbol_co;
-    new_node->section_id = ( type == SYM_SECTION ? new_node->sym_id : prog->symbol_table_tail->section_id );
+    new_node->section_id = ( type == SYM_SECTION ? new_node->sym_id : 
+        ( prog->symbol_table_tail ? prog->symbol_table_tail->section_id : 1 ) );
     new_node->offset = offset;
     new_node->reach = REACH_LOCAL;
     new_node->next = 0;
-
+    
     if (!prog->symbol_table_head) prog->symbol_table_head = new_node;
     else prog->symbol_table_tail->next = new_node;
     prog->symbol_table_tail = new_node;
@@ -98,7 +101,7 @@ int prog_make_global(Program* prog, char* label)
     node->type = SYM_LABEL;
     strcpy(node->name, label);
     node->sym_id = ++prog->symbol_co;
-    node->section_id = 0; // spacial identification for exported and imported?
+    node->section_id = 0;
     node->offset = 0;
     node->reach = REACH_GLOBAL;
     node->next = 0;
@@ -126,18 +129,7 @@ void prog_new_seg(Program* prog)
     if (!prog->data_head) prog->data_head = new_node;
     else prog->data_tail->next = new_node;
     prog->data_tail = new_node;
-}
-
-void prog_set_seg_len(Program* prog, int len)
-{
-    SymbolTableNode* section = 0;
-    SymbolTableNode* sym;
-    for (sym = prog->symbol_table_head; sym; sym = sym->next)
-    {
-        if (sym->type == SYM_SECTION) section = sym;
-    }
-    if (!section) return;
-    section->offset = len;
+    prog->section_co++;
 }
 
 int prog_add_data(Program* prog, char byte)
@@ -160,6 +152,7 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
 {
     RelListNode* new_rel;
     SymbolTableNode* sym_node;
+
     if (!prog || !prog->data_head) return 0;
 
     for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
@@ -167,7 +160,6 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
         if (strcmp(sym_node->name, sym) == 0) break;
     }
     if (!sym_node) return 0;
-
     new_rel = malloc(sizeof(RelListNode));
     new_rel->offset = offset;
     new_rel->rel = rel;
@@ -188,16 +180,6 @@ int prog_relocate(Program* prog)
     int acc_size;
     if (!prog) return 0;
 
-    acc_size = prog->start_addr;
-    section_sym = prog->symbol_table_head;
-    for (data_node = prog->data_head; data_node; data_node = data_node->next)
-    {
-        while (section_sym->type != SYM_SECTION) section_sym = section_sym->next;
-        section_sym->offset = acc_size;
-        acc_size += data_node->data_size;
-        section_sym = section_sym->next;
-    }
-
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
         RelListNode* rel_node;
@@ -205,6 +187,7 @@ int prog_relocate(Program* prog)
         {
             SymbolTableNode* sym_node;
             int fill_addr;
+            
             for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
             {
                 if (sym_node->sym_id == rel_node->sym_id) break;
@@ -228,6 +211,95 @@ int prog_relocate(Program* prog)
 
 int prog_link(Program* dst, Program* src)
 {
+    SymbolTableNode* src_sym;
+    DataListNode* src_data;
+    if (!dst || !src) return 0;
+
+    for (src_sym = src->symbol_table_head; src_sym; src_sym = src_sym->next)
+    {
+        SymbolTableNode* dst_sym;
+
+        if (src_sym->type == SYM_SECTION)
+        {
+            prog_add_sym(dst, SYM_SECTION, src_sym->name, src_sym->offset);
+            continue;
+        }
+
+        if (src_sym->reach == REACH_LOCAL) dst->symbol_co++;
+        else 
+        {
+            for (dst_sym = dst->symbol_table_head; dst_sym; dst_sym = dst_sym->next)
+            {
+                if (strcmp(dst_sym->name, src_sym->name) == 0) break; 
+            }
+            if (!dst_sym)
+            {
+                prog_add_sym(dst, SYM_LABEL, src_sym->name, src_sym->offset);
+                dst_sym = dst->symbol_table_tail;
+                if (src_sym->section_id == 0) dst_sym->section_id = 0;
+                dst_sym->reach = REACH_GLOBAL;
+            }
+            else 
+            {
+                dst->symbol_co++;
+                if (src_sym->section_id != 0 && dst_sym->section_id != 0) return 0;
+                if (dst_sym->section_id == 0)
+                {
+                    dst_sym->section_id = dst->symbol_table_tail->section_id;
+                }
+            }
+        }
+
+        for (src_data = src->data_head; src_data; src_data = src_data->next)
+        {
+            RelListNode* src_rel;
+            for (src_rel = src_data->rel_head; src_rel; src_rel = src_rel->next)
+            {
+                if (src_rel->sym_id == src_sym->sym_id)
+                {
+                    if (src_sym->section_id == 0) src_rel->sym_id += dst->section_co;
+                    else src_rel->sym_id = -1;
+                }
+            }
+        }
+    }
+
+    for (src_data = src->data_head; src_data; src_data = src_data->next)
+    {
+        DataListNode* new_node;
+        RelListNode* src_rel;
+
+        new_node = malloc(sizeof(DataListNode));
+        new_node->data_buffer = calloc(src_data->buffer_size, sizeof(char));
+        memcpy(new_node->data_buffer, src_data->data_buffer, src_data->data_size);
+        new_node->data_size = src_data->data_size;
+        new_node->buffer_size = src_data->buffer_size;
+        new_node->rel_head = 0;
+        new_node->rel_tail = 0;
+        new_node->next = 0;
+
+        for (src_rel = src_data->rel_head; src_rel; src_rel = src_rel->next)
+        {
+            RelListNode* new_rel;
+            if (src_rel->sym_id == -1) continue;
+            
+            new_rel = malloc(sizeof(RelListNode));
+            new_rel->offset = src_rel->offset;
+            new_rel->rel = src_rel->rel;
+            new_rel->sym_id = src_rel->sym_id;
+            new_rel->next = 0;
+
+            if (!new_node->rel_head) new_node->rel_head = new_rel;
+            else new_node->rel_tail->next = new_rel;
+            new_node->rel_tail = new_rel;
+        }
+
+        if (!dst->data_head) dst->data_head = new_node;
+        else dst->data_tail->next = new_node;
+        dst->data_tail = new_node;
+        dst->section_co++;
+    }
+    
     return 1;
 }
 
@@ -247,10 +319,6 @@ PROG_RET prog_load(Program* prog, char* path)
     if (!prog) return PROG_ERT_INVALID_PROGRAM;
     file = fopen(path, "r");
     if (!file) return PROG_RET_INVALID_PATH;
-
-    if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
-    if (sscanf(line, "%d%c", &prog->start_addr, &end) != 2) return PROG_ERT_INVALID_PROGRAM;
-    if (end != '\n') return PROG_ERT_INVALID_PROGRAM;
     
     while(1)
     {
@@ -347,7 +415,6 @@ PROG_RET prog_store(Program* prog, char* path)
     file = fopen(path, "w");
     if (!file) return PROG_RET_INVALID_PATH;
 
-    fprintf(file, "%d\n", prog->start_addr);
     for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
     {
         fprintf(file, "%d %s %d %d %d %d\n",
@@ -360,9 +427,13 @@ PROG_RET prog_store(Program* prog, char* path)
     {
         RelListNode* rel_node;
 
-        while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
+        while (sym_node->type != SYM_SECTION) 
+        {
+            sym_node = sym_node->next;
+        }
         fprintf(file, "%s\n", sym_node->name);
         sym_node = sym_node->next;
+        
         for (rel_node = data_node->rel_head; rel_node; rel_node = rel_node->next)
         {
             fprintf(file, "%08x %d %d\n", rel_node->offset, rel_node->rel, rel_node->sym_id);
@@ -372,16 +443,16 @@ PROG_RET prog_store(Program* prog, char* path)
         {
             char c1 = ((data_node->data_buffer[i] >> 4 ) & 0b1111) + '0';
             char c2 = (data_node->data_buffer[i] & 0b1111) + '0';
-            
+
             if (c1 > '9') c1 = c1 - '9' - 1 + 'A';
             if (c2 > '9') c2 = c2 - '9' - 1 + 'A';
             fprintf(file, "%c%c ", c1, c2);
-            if ((i + 1) % 10 == 0) 
+            if ((i + 1) % 16 == 0) 
             {
                 fprintf(file, "\n");
             }
         }
-        if ((i + 1) % 10 != 0) fprintf(file, "\n");
+        if ((i + 1) % 16 != 0) fprintf(file, "\n");
     }
     
     fclose(file);

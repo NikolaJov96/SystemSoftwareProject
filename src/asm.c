@@ -105,7 +105,7 @@ int main(int argc, char** argv)
     FILE* input_file;
     FILE* output_file;
     Program* prog = 0;
-    int line_num, acc_offset;
+    int line_num, acc_offset, comb_offset;
     char line[256];
     SECTION curr_section = SEC_NONE;
     int section_used[6] = { 1, 0, 0, 0, 0, 0 };
@@ -139,12 +139,12 @@ int main(int argc, char** argv)
     fclose(output_file);
 
     prog = new_program();
-    prog->start_addr = args.start_addr;
 
     if (args.verb == ARGS_VERB_VERBOSE) printf("First pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
     acc_offset = 0;
+    comb_offset = ( args.start_addr != -1 ? args.start_addr : -1 );
 
     while (fgets(line, sizeof(line), input_file)) 
     {
@@ -169,8 +169,6 @@ int main(int argc, char** argv)
         {
             int status;
 
-            prog_set_seg_len(prog, acc_offset);
-
             if (section_used[new_sec]++ > 0)
             {
                 sprintf(err_line, "Already used section, line %d : %s", line_num, line);
@@ -189,8 +187,9 @@ int main(int argc, char** argv)
             }
             curr_section = new_sec;
             if (new_sec == SEC_END) break;
+            comb_offset += acc_offset;
             acc_offset = 0;
-            ret = prog_add_sym(prog, SYM_SECTION, line, acc_offset);
+            ret = prog_add_sym(prog, SYM_SECTION, line, comb_offset);
             if (ret == 1)
             {
                 sprintf(err_line, "Invalid label, line %d : %s", line_num, line);
