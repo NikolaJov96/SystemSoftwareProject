@@ -221,6 +221,20 @@ int prog_link(Program* dst, Program* src)
 
         if (src_sym->type == SYM_SECTION)
         {
+            if (src_sym->offset == -1) 
+            {
+                if (!dst->data_head) src_sym->offset = 100;
+                else 
+                {
+                    SymbolTableNode* last_sec_sym = dst->symbol_table_head;
+                    while (last_sec_sym) 
+                    {
+                        if (last_sec_sym->type == SYM_SECTION) src_sym->offset = last_sec_sym->offset;
+                        last_sec_sym = last_sec_sym->next;
+                    }
+                    src_sym->offset += dst->data_head->data_size;
+                }
+            }
             prog_add_sym(dst, SYM_SECTION, src_sym->name, src_sym->offset);
             continue;
         }

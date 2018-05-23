@@ -187,7 +187,7 @@ int main(int argc, char** argv)
             }
             curr_section = new_sec;
             if (new_sec == SEC_END) break;
-            comb_offset += acc_offset;
+            if (comb_offset != -1) comb_offset += acc_offset;
             acc_offset = 0;
             ret = prog_add_sym(prog, SYM_SECTION, line, comb_offset);
             if (ret == 1)
