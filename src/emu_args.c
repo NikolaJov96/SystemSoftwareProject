@@ -18,8 +18,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         args->do_build = 0;
         args->do_run = 0;
         break;
-    case 'l': args->do_link = 1; break;
-    case 'b': args->do_build = 1; break;
+    case 'l': args->do_link = 1; strcpy(args->link_target, arg); break;
+    case 'b': args->do_build = 1; strcpy(args->build_target, arg); break;
     case 'r': args->do_run = 1; break;
     case 'v':
         if (args->verb != ARGS_VERB_NORMAL) return ARGP_ERR_UNKNOWN;

@@ -181,6 +181,56 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
     return 1;
 }
 
+int prog_relocate(Program* prog)
+{
+    SymbolTableNode* section_sym;
+    DataListNode* data_node;
+    int acc_size;
+    if (!prog) return 0;
+
+    acc_size = prog->start_addr;
+    section_sym = prog->symbol_table_head;
+    for (data_node = prog->data_head; data_node; data_node = data_node->next)
+    {
+        while (section_sym->type != SYM_SECTION) section_sym = section_sym->next;
+        section_sym->offset = acc_size;
+        acc_size += data_node->data_size;
+        section_sym = section_sym->next;
+    }
+
+    for (data_node = prog->data_head; data_node; data_node = data_node->next)
+    {
+        RelListNode* rel_node;
+        for (rel_node = data_node->rel_head; rel_node; rel_node = rel_node->next)
+        {
+            SymbolTableNode* sym_node;
+            int fill_addr;
+            for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
+            {
+                if (sym_node->sym_id == rel_node->sym_id) break;
+            }
+            if (!sym_node) return 0;
+            if (sym_node->reach == REACH_GLOBAL && sym_node->section_id == 0) continue;
+
+            section_sym = prog->symbol_table_head;
+            while (section_sym->sym_id != sym_node->section_id) section_sym = section_sym->next;
+
+            fill_addr = section_sym->offset + sym_node->offset;
+            data_node->data_buffer[rel_node->offset] = (fill_addr >> 8) & 0xFF;
+            data_node->data_buffer[rel_node->offset + 1] = fill_addr & 0xFF;
+        }
+
+        acc_size += data_node->data_size;
+    }
+
+    return 1;
+}
+
+int prog_link(Program* dst, Program* src)
+{
+    return 1;
+}
+
 static int is_hex(char c)
 {
     if (c >= '0' && c <= '9') return 1;

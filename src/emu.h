@@ -17,7 +17,9 @@ typedef struct EmuArgs
     InputListNode* in_head;
     InputListNode* in_tail;
     int do_link;
+    char link_target[250];
     int do_build;
+    char build_target[250];
     int do_run;
 } EmuArgs;
 
