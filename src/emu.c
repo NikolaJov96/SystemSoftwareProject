@@ -25,8 +25,6 @@ int main(int argc, char** argv)
 
     parse_args(argc, argv, &args);
 
-    printf("emulator\n");
-
     for (input_node = args.in_head; input_node; input_node = input_node->next)
     {
         file = fopen(input_node->file, "r");
@@ -127,6 +125,8 @@ int main(int argc, char** argv)
         if (args.verb == ARGS_VERB_VERBOSE) printf("  Running emulation.\n");
         emu_run(prog);
     }
+
+    if (args.verb == ARGS_VERB_VERBOSE) printf("  Done.\n");
 
     prog_free(&linked_prog);
     return 0;
