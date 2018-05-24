@@ -109,6 +109,7 @@ int main(int argc, char** argv)
 
     if (args.do_link)
     {
+        if (args.verb == ARGS_VERB_VERBOSE) printf("  Saving object file.\n");
         if (prog_store(prog, args.link_target) != PROG_RET_SUCCESS)
         {
             printf("Colud not save linked object file\n"); 
@@ -123,7 +124,8 @@ int main(int argc, char** argv)
 
     if (args.do_run)
     {
-        // execute program
+        if (args.verb == ARGS_VERB_VERBOSE) printf("  Running emulation.\n");
+        emu_run(prog);
     }
 
     prog_free(&linked_prog);
