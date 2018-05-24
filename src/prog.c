@@ -175,14 +175,18 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym)
 
 int prog_relocate(Program* prog)
 {
+    SymbolTableNode* curr_section_sym;
     SymbolTableNode* section_sym;
     DataListNode* data_node;
     int acc_size;
     if (!prog) return 0;
 
+    curr_section_sym = prog->symbol_table_head;
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
         RelListNode* rel_node;
+        while (curr_section_sym->type != SYM_SECTION) curr_section_sym = curr_section_sym->next;
+
         for (rel_node = data_node->rel_head; rel_node; rel_node = rel_node->next)
         {
             SymbolTableNode* sym_node;
@@ -198,12 +202,14 @@ int prog_relocate(Program* prog)
             section_sym = prog->symbol_table_head;
             while (section_sym->sym_id != sym_node->section_id) section_sym = section_sym->next;
 
-            fill_addr = section_sym->offset + sym_node->offset;
+            if (rel_node->rel == REL_16) fill_addr = section_sym->offset + sym_node->offset;
+            else fill_addr = section_sym->offset + sym_node->offset - curr_section_sym->offset - rel_node->offset;
             data_node->data_buffer[rel_node->offset] = (fill_addr >> 8) & 0xFF;
             data_node->data_buffer[rel_node->offset + 1] = fill_addr & 0xFF;
         }
 
         acc_size += data_node->data_size;
+        curr_section_sym = curr_section_sym->next;
     }
 
     return 1;

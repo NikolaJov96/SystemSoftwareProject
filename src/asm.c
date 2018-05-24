@@ -397,7 +397,8 @@ int main(int argc, char** argv)
                     else
                     {
                         // relocation
-                        if (!prog_add_rel(prog, acc_offset + 2, REL_16, op->label))
+                        if ((!op->addr == ADDR_PCREL && !prog_add_rel(prog, acc_offset + 2, REL_16, op->label)) ||
+                            !prog_add_rel(prog, acc_offset + 2, REL_PC16, op->label))
                         {
                             sprintf(err_line, "Unknown label '%s', line %d : %s", op->label, line_num, line);
                             exit_prog(args.verb, input_file);
