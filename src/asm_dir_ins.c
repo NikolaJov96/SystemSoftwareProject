@@ -277,12 +277,12 @@ int ins_parse(Instruction* ins, char* line)
     else if (ret = starts_with(line, "push", &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_PUSH;
     else if (ret = starts_with(line, "pop",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_POP;
     else if (ret = starts_with(line, "call", &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_CALL;
-    else if (ret = starts_with(line, "iret", &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_IRET;
+    else if (ret = starts_with(line, "iret", &ind, 5, "al", "eq", "ne",  "gt",  ""   )) ins->ins = INS_IRET;
     else if (ret = starts_with(line, "mov",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_MOV;
     else if (ret = starts_with(line, "shl",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHL;
     else if (ret = starts_with(line, "shr",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SHR;
     else if (ret = starts_with(line, "jmp",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_JMP;
-    else if (ret = starts_with(line, "ret",  &ind, 5, "al",  "eq",  "ne",  "gt",  "" )) ins->ins = INS_RET;
+    else if (ret = starts_with(line, "ret",  &ind, 5, "al", "eq", "ne",  "gt",  ""   )) ins->ins = INS_RET;
     else return 2;
     if (line[ind] == ' ') ind++;
 
@@ -458,7 +458,7 @@ int dir_len(Directive* dir, int curr_offset)
     case DIR_CHAR: len = 1; break;
     case DIR_WORD: len = 2; break;
     case DIR_LONG: len = 4; break;
-    case DIR_ALIGN:
+    case DIR_ALIGN:  // fix parametriizing by n-th power of 2
         if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;
         if (curr_offset % dir->args_head->val == 0) return 0;
         return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;

@@ -2,6 +2,7 @@
 #define EMU_H
 
 #include <argp.h>
+#include <stdint.h>
 
 #include "prog.h"
 
@@ -35,8 +36,8 @@ typedef struct EmuArgs
 
 typedef struct CPU
 {
-    int reg[8];
-    int psw;
+    int16_t reg[8];
+    int16_t psw;
     char* mem[256];
 } CPU;
 
@@ -48,5 +49,13 @@ void cpu_free(CPU** cpu);
 int cpu_load_prog(CPU* cpu, Program* prog);
 char cpu_r(CPU* cpu, int addr);
 char cpu_w(CPU* cpu, int addr, char val);
+int cpu_rn(CPU* cpu);
+int cpu_rc(CPU* cpu);
+int cpu_ro(CPU* cpu);
+int cpu_rz(CPU* cpu);
+void cpu_wn(CPU* cpu, int n);
+void cpu_wc(CPU* cpu, int c);
+void cpu_wo(CPU* cpu, int o);
+void cpu_wz(CPU* cpu, int z);
 
 #endif  // EMU_H
