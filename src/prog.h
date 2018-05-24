@@ -59,6 +59,7 @@ int prog_add_rel(Program* prog, int offset, RELOCATION rel, char* sym);
 
 int prog_relocate(Program* prog);
 int prog_link(Program* dst, Program* src);
+int prog_test_addr(Program* prog);
 
 PROG_RET prog_load(Program* prog, char* path);
 PROG_RET prog_store(Program* prog, char* path);

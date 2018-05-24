@@ -213,7 +213,27 @@ int prog_link(Program* dst, Program* src)
 {
     SymbolTableNode* src_sym;
     DataListNode* src_data;
+    DataListNode* dst_data;
     if (!dst || !src) return 0;
+
+    dst_data = dst->data_head;
+    for (src_data = src->data_head; src_data; src_data = src_data->next)
+    {
+        DataListNode* new_node;
+
+        new_node = malloc(sizeof(DataListNode));
+        new_node->data_buffer = calloc(src_data->buffer_size, sizeof(char));
+        memcpy(new_node->data_buffer, src_data->data_buffer, src_data->data_size);
+        new_node->data_size = src_data->data_size;
+        new_node->buffer_size = src_data->buffer_size;
+        new_node->rel_head = 0;
+        new_node->rel_tail = 0;
+        new_node->next = 0;
+
+        if (!dst->data_head) dst->data_head = new_node;
+        else dst->data_tail->next = new_node;
+        dst->data_tail = new_node;
+    }
 
     for (src_sym = src->symbol_table_head; src_sym; src_sym = src_sym->next)
     {
@@ -223,10 +243,11 @@ int prog_link(Program* dst, Program* src)
         {
             if (src_sym->offset == -1) 
             {
-                if (!dst->data_head) src_sym->offset = 100;
+                if (!dst->symbol_table_head) src_sym->offset = 100;
                 else 
                 {
                     SymbolTableNode* last_sec_sym = dst->symbol_table_head;
+                    
                     while (last_sec_sym) 
                     {
                         if (last_sec_sym->type == SYM_SECTION) src_sym->offset = last_sec_sym->offset;
@@ -278,20 +299,11 @@ int prog_link(Program* dst, Program* src)
         }
     }
 
-    for (src_data = src->data_head; src_data; src_data = src_data->next)
+    if (!dst_data) dst_data = dst->data_head;
+    else dst_data = dst_data->next;
+    for (src_data = src->data_head; src_data; src_data = src_data->next, dst_data = dst_data->next)
     {
-        DataListNode* new_node;
         RelListNode* src_rel;
-
-        new_node = malloc(sizeof(DataListNode));
-        new_node->data_buffer = calloc(src_data->buffer_size, sizeof(char));
-        memcpy(new_node->data_buffer, src_data->data_buffer, src_data->data_size);
-        new_node->data_size = src_data->data_size;
-        new_node->buffer_size = src_data->buffer_size;
-        new_node->rel_head = 0;
-        new_node->rel_tail = 0;
-        new_node->next = 0;
-
         for (src_rel = src_data->rel_head; src_rel; src_rel = src_rel->next)
         {
             RelListNode* new_rel;
@@ -303,17 +315,59 @@ int prog_link(Program* dst, Program* src)
             new_rel->sym_id = src_rel->sym_id;
             new_rel->next = 0;
 
-            if (!new_node->rel_head) new_node->rel_head = new_rel;
-            else new_node->rel_tail->next = new_rel;
-            new_node->rel_tail = new_rel;
+            if (!dst_data->rel_head) dst_data->rel_head = new_rel;
+            else dst_data->rel_tail->next = new_rel;
+            dst_data->rel_tail = new_rel;
         }
-
-        if (!dst->data_head) dst->data_head = new_node;
-        else dst->data_tail->next = new_node;
-        dst->data_tail = new_node;
         dst->section_co++;
     }
     
+    return 1;
+}
+
+int prog_test_addr(Program* prog)
+{
+    SymbolTableNode* sym_node;
+    DataListNode* data_node;
+    if (!prog) return 0;
+    
+    sym_node = prog->symbol_table_head;
+    data_node = prog->data_head;
+    
+    if (!data_node) return 0;
+    if (!data_node->next) return 1;
+    
+    while (data_node->next)
+    {
+        SymbolTableNode* sub_sym_node;
+        DataListNode* sub_data_node;
+
+        while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
+
+        sub_sym_node = sym_node->next;
+        sub_data_node = data_node->next;
+
+        while (sub_data_node)
+        {
+            while (sub_sym_node->type != SYM_SECTION) sub_sym_node = sub_sym_node->next;
+            
+            if (sym_node->offset >= sub_sym_node->offset && 
+                sym_node->offset <= sub_sym_node->offset + sub_data_node->data_size - 1) return 0;
+                
+            if (sym_node->offset + data_node->data_size - 1 >= sub_sym_node->offset && 
+                sym_node->offset + data_node->data_size - 1 <= sub_sym_node->offset + sub_data_node->data_size - 1) return 0;
+                
+            if (sub_sym_node->offset >= sym_node->offset && 
+                sub_sym_node->offset <= sym_node->offset + data_node->data_size - 1) return 0;
+                
+            sub_sym_node = sub_sym_node->next;
+            sub_data_node = sub_data_node->next;
+        }
+
+        sym_node = sym_node->next;
+        data_node = data_node->next;
+    }
+
     return 1;
 }
 

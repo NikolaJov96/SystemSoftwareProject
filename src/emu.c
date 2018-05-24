@@ -94,12 +94,18 @@ int main(int argc, char** argv)
 
     if (!prog_relocate(linked_prog))
     {
-        sprintf(err_line, "Error resolving local relocations in linked program.\n");
+        sprintf(err_line, "Error resolving local relocations in the linked program.\n");
         exit_prog(args.verb, 0);
     }
 
     prog = new_program();
     prog_link(prog, linked_prog);
+
+    if (!prog_test_addr(prog))
+    {
+        sprintf(err_line, "Sections overlapping in the linked program.\n");
+        exit_prog(args.verb, 0);
+    }
 
     if (args.do_link)
     {
