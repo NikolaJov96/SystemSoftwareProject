@@ -178,8 +178,9 @@ void emu_run(Program* prog)
             cpu_w(cpu, cpu->reg[6] + 1, arg1_val >> 8);
             break;
         case INS_POP:
-            res_val = cpu_r(cpu, cpu->reg[6]++) & 0xFF;
-            res_val |= cpu_r(cpu, cpu->reg[6]++) << 8;
+            res_val = cpu_r(cpu, cpu->reg[6]) & 0xFF;
+            res_val |= cpu_r(cpu, cpu->reg[6] + 1) << 8;
+            cpu->reg[6] += 2;
             store_res = 1;
             break;
         case INS_CALL:
@@ -328,16 +329,16 @@ int cpu_load_prog(CPU* cpu, Program* prog)
     return 0;
 }
 
-char cpu_r(CPU* cpu, int addr)
+char cpu_r(CPU* cpu, uint16_t addr)
 {
-    if (!cpu || !cpu->mem || addr < 0 || addr >= 1 << 16) return -1;
+    if (!cpu || !cpu->mem) return -1;
     if (cpu->mem[addr >> 8]) return cpu->mem[addr >> 8][addr & 0xFF];
     return 0;
 }
 
-char cpu_w(CPU* cpu, int addr, char val)
+char cpu_w(CPU* cpu, uint16_t addr, char val)
 {
-    if (!cpu || !cpu->mem || addr < 0 || addr >= 1 << 16) return 0;
+    if (!cpu || !cpu->mem) return 0;
     if (!cpu->mem[addr >> 8]) cpu->mem[addr >> 8] = calloc(256, sizeof(char));
     cpu->mem[addr >> 8][addr & 0xFF] = val; 
     return 1;
