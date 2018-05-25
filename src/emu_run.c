@@ -28,7 +28,6 @@ void emu_run(Program* prog)
 
         ins_c1 = cpu_r(cpu, cpu->reg[7]++);
         ins_c2 = cpu_r(cpu, cpu->reg[7]++);
-        // printf("ins %d %d pc %d\n", ins_c1, ins_c2, cpu->reg[7]);
         if (ins_c1 == 0 && ins_c2 == 0) return;
         
         switch (ins_c1 >> 6)
@@ -120,8 +119,6 @@ void emu_run(Program* prog)
                 }
             }
         }
-
-        // printf("ins: %d %d %d %d\n", addr1, addr2, cpu_r(cpu, arg2_imm) << 8, cpu_r(cpu, arg2_imm + 1) & 0xFF);
 
         if (cond == COND_EQ && !cpu_rz(cpu)) continue;
         if (cond == COND_NE && !cpu_rn(cpu)) continue;

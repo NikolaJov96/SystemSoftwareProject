@@ -393,7 +393,6 @@ int main(int argc, char** argv)
 
                     if (op->label[0] == 0) 
                     {
-                        // check little endian order
                         data[2] = op->val & 0xFF;
                         data[3] = op->val >> 8;
                     }
