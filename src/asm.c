@@ -383,7 +383,10 @@ int main(int argc, char** argv)
                     switch (op->addr)
                     {
                     case ADDR_IMM: byte = 0b0000000; break;
-                    case ADDR_MEMDIR: byte = 0b00010000; break;
+                    case ADDR_MEMDIR:
+                        if (ins.ins != INS_JMP) byte = 0b00010000;
+                        else byte = 0b0001000 | 0b00000111;
+                        break;
                     case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
                     case ADDR_PCREL: byte = 0b00001000 | 0b00000111; break;
                     }
