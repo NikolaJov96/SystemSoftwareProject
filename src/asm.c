@@ -385,7 +385,7 @@ int main(int argc, char** argv)
                     case ADDR_IMM: byte = 0b0000000; break;
                     case ADDR_MEMDIR: byte = 0b00010000; break;
                     case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
-                    case ADDR_PCREL: byte = 0b00011000 | 0b00000111; break;
+                    case ADDR_PCREL: byte = 0b00001000 | 0b00000111; break;
                     }
 
                     if (op->label[0] == 0) 
@@ -396,12 +396,21 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        // relocation
-                        if ((!op->addr == ADDR_PCREL && !prog_add_rel(prog, acc_offset + 2, REL_16, op->label)) ||
-                            !prog_add_rel(prog, acc_offset + 2, REL_PC16, op->label))
+                        if (op->addr != ADDR_PCREL)
                         {
-                            sprintf(err_line, "Unknown label '%s', line %d : %s", op->label, line_num, line);
-                            exit_prog(args.verb, input_file);
+                            if (!prog_add_rel(prog, acc_offset + 2, REL_16, op->label))
+                            {
+                                sprintf(err_line, "Unknown label '%s', line %d : %s", op->label, line_num, line);
+                                exit_prog(args.verb, input_file);
+                            }
+                        }
+                        else
+                        {
+                            if (!prog_add_rel(prog, acc_offset + 2, REL_PC16, op->label))
+                            {
+                                sprintf(err_line, "Unknown label '%s', line %d : %s", op->label, line_num, line);
+                                exit_prog(args.verb, input_file);
+                            }
                         }
                         data[2] = 0;
                         data[3] = 0;

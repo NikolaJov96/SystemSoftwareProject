@@ -126,7 +126,7 @@ int main(int argc, char** argv)
         emu_run(prog);
     }
 
-    if (args.verb == ARGS_VERB_VERBOSE) printf("  Done.\n");
+    if (args.verb == ARGS_VERB_VERBOSE) printf("\n  Done.\n");
 
     prog_free(&linked_prog);
     return 0;

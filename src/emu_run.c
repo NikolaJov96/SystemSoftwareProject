@@ -7,20 +7,29 @@
 void emu_run(Program* prog)
 {
     CPU* cpu = new_cpu();
-    cpu_load_prog(cpu, prog);
+    switch (cpu_load_prog(cpu, prog))
+    {
+    case 1: printf("-1-\n"); return; break;
+    case 2: printf("-2-\n"); return; break;
+    case 3: printf("-3-\n"); return; break;
+    case 4: printf("-4-\n"); return; break;
+    }
 
     while (1)
     {
-        char ins_c1, ins_c2, arg1_code, arg2_code;
-        int16_t arg1_imm = 0, arg2_imm = 0;
+        unsigned char ins_c1, ins_c2, arg1_code, arg2_code;
+        uint16_t arg1_imm = 0, arg2_imm = 0;
         int16_t arg1_val = 0, arg2_val = 0, res_val = 0;
         char set_n = 0, set_c = 0, set_o = 0, set_z = 0, store_res = 0;
+        char printf_char;
         INS_COND cond;
         INSTRUCTION ins;
         ADDRESSING addr1, addr2;
 
         ins_c1 = cpu_r(cpu, cpu->reg[7]++);
         ins_c2 = cpu_r(cpu, cpu->reg[7]++);
+        // printf("ins %d %d pc %d\n", ins_c1, ins_c2, cpu->reg[7]);
+        if (ins_c1 == 0 && ins_c2 == 0) return;
         
         switch (ins_c1 >> 6)
         {
@@ -30,7 +39,7 @@ void emu_run(Program* prog)
         case 0b11: cond = COND_AL; break;
         }
 
-        switch ((ins_c1 >> 2) & 0xFF)
+        switch ((ins_c1 >> 2) & 0xF)
         {
         case 0b0000: ins = INS_ADD; break;
         case 0b0001: ins = INS_SUB; break;
@@ -48,6 +57,9 @@ void emu_run(Program* prog)
         case 0b1101: ins = INS_MOV; break;
         case 0b1110: ins = INS_SHL; break;
         case 0b1111: ins = INS_SHR; break;
+        default:
+            // interrupt
+            break;
         }
 
         if (ins != INS_IRET)
@@ -62,7 +74,7 @@ void emu_run(Program* prog)
             }
             if (addr1 != ADDR_REGDIR)
             {
-                arg1_imm = cpu_r(cpu, cpu->reg[7]) << 8 + cpu_r(cpu, cpu->reg[7] + 1);
+                arg1_imm = (cpu_r(cpu, cpu->reg[7]) << 8) + (cpu_r(cpu, cpu->reg[7] + 1) & 0xFF);
                 cpu->reg[7] += 2;
             }
             switch (addr1)
@@ -70,15 +82,15 @@ void emu_run(Program* prog)
             case ADDR_PSW: arg1_val = cpu->psw; break;
             case ADDR_IMM: arg1_val = arg1_imm; break;
             case ADDR_REGDIR: arg1_val = cpu->reg[arg1_code & 0b111]; break;
-            case ADDR_MEMDIR: arg1_val = cpu_r(cpu, arg1_imm) << 8 + cpu_r(cpu, arg1_imm + 1); break;
+            case ADDR_MEMDIR: arg1_val = (cpu_r(cpu, arg1_imm) << 8) + (cpu_r(cpu, arg1_imm + 1) & 0xFF); break;
             case ADDR_REGINDDISP: 
                 arg1_val = 
-                    cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111]) << 8 + 
-                    cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1); 
+                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111]) << 8) + 
+                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1) & 0xFF);
                 break;
             }
 
-            if (ins != INS_PUSH && ins == INS_POP && ins == INS_CALL)
+            if (ins != INS_PUSH && ins != INS_POP && ins != INS_CALL)
             {
                 arg2_code = ins_c2 & 0b11111;
                 switch (arg2_code >> 3)
@@ -91,7 +103,7 @@ void emu_run(Program* prog)
                 if (addr2 != ADDR_REGDIR)
                 {
                     if (addr1 != ADDR_REGDIR) return;
-                    arg2_imm = cpu_r(cpu, cpu->reg[7]) << 8 + cpu_r(cpu, cpu->reg[7] + 1);
+                    arg2_imm = (cpu_r(cpu, cpu->reg[7]) << 8) + (cpu_r(cpu, cpu->reg[7] + 1) & 0xFF);
                     cpu->reg[7] += 2;
                 }
                 switch (addr2)
@@ -99,15 +111,17 @@ void emu_run(Program* prog)
                 case ADDR_PSW: arg2_val = cpu->psw; break;
                 case ADDR_IMM: arg2_val = arg2_imm; break;
                 case ADDR_REGDIR: arg2_val = cpu->reg[arg2_code & 0b111]; break;
-                case ADDR_MEMDIR: arg2_val = cpu_r(cpu, arg2_imm) << 8 + cpu_r(cpu, arg2_imm + 1); break;
+                case ADDR_MEMDIR: arg2_val = (cpu_r(cpu, arg2_imm) << 8) + (cpu_r(cpu, arg2_imm + 1) & 0xFF); break;
                 case ADDR_REGINDDISP: 
                     arg2_val = 
-                        cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111]) << 8 + 
-                        cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111] + 1); 
+                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111]) << 8) + 
+                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111] + 1) & 0xFF); 
                     break;
                 }
             }
         }
+
+        // printf("ins: %d %d %d %d\n", addr1, addr2, cpu_r(cpu, arg2_imm) << 8, cpu_r(cpu, arg2_imm + 1) & 0xFF);
 
         if (cond == COND_EQ && !cpu_rz(cpu)) continue;
         if (cond == COND_NE && !cpu_rn(cpu)) continue;
@@ -212,7 +226,7 @@ void emu_run(Program* prog)
         }
         if (set_z)
         {
-            if (res_val = 0) cpu_wz(cpu, 1);
+            if (res_val == 0) cpu_wz(cpu, 1);
             else cpu_wz(cpu, 0);
         }
 
@@ -223,7 +237,7 @@ void emu_run(Program* prog)
             case ADDR_PSW: cpu->psw = res_val; break;
             case ADDR_IMM: return; break;
             case ADDR_REGDIR: cpu->reg[arg1_code & 0b111] = res_val; break;
-            case ADDR_MEMDIR: 
+            case ADDR_MEMDIR:
                 cpu_w(cpu, arg1_imm, res_val >> 8);
                 cpu_w(cpu, arg1_imm + 1, res_val & 0xFF);
                 break;
@@ -234,7 +248,14 @@ void emu_run(Program* prog)
             }
         }
 
-        break;
+        printf_char = cpu_r(cpu, 0xFFFE);
+        if (!printf_char) printf_char = cpu_r(cpu, 0xFFFF);
+        if (printf_char)
+        {
+            printf("%c", printf_char);
+            cpu_w(cpu, 0xFFFE, 0);
+            cpu_w(cpu, 0xFFFF, 0);
+        }
     }
 
     cpu_free(&cpu);
@@ -270,21 +291,31 @@ void cpu_free(CPU** cpu)
 int cpu_load_prog(CPU* cpu, Program* prog)
 {
     SymbolTableNode* sym_node;
+    SymbolTableNode* sec_node;
     DataListNode* data_node;
-    if (!cpu || !prog) return 0;
+    if (!cpu || !prog) return 1;
 
     for (sym_node = prog->symbol_table_head; sym_node; sym_node = sym_node->next)
     {
-        if (strcmp(sym_node->name, "START") == 0) break;
+        if (strcmp(sym_node->name, "start") == 0) break;
     }
-    if (!sym_node) return 0;
+    if (!sym_node) return 2;
+
+    for (sec_node = prog->symbol_table_head; sec_node; sec_node = sec_node->next)
+    {
+        if (sec_node->sym_id == sym_node->section_id) break;
+    }
+    if (!sec_node) return 3;
 
     cpu->reg[6] = (1 << 16) - 128;
-    cpu->reg[7] = sym_node->offset;
+    cpu->reg[7] = sec_node->offset + sym_node->offset;
     sym_node = prog->symbol_table_head;
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {
         int i;
+        RelListNode* rel_node;
+        if (data_node->rel_head) return 4;
+
         while (sym_node->type != SYM_SECTION) sym_node = sym_node->next;
 
         for (i = 0; i < data_node->data_size; i++)
@@ -294,6 +325,8 @@ int cpu_load_prog(CPU* cpu, Program* prog)
 
         sym_node =sym_node->next;
     }
+
+    return 0;
 }
 
 char cpu_r(CPU* cpu, int addr)

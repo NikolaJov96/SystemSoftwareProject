@@ -58,14 +58,16 @@ void parse_args(int argc, char** argv, EmuArgs* args)
 {
     const char* argp_program_version = "emu 1.0";
     const char* argp_program_bug_address = "jovanovicn.96@gmail.com";
-    static char* doc = "Your program description.";
-    static char* args_doc = "[INPUTFILE, ...]";
+    static char* doc = 
+"Taking multiple object files and linking them.\
+ Linked object file can be run or stored as object file or executable.";
+    static char* args_doc = "[INPUT_FILE, ...]";
     static struct argp_option options[] = {
-        { "link",    'l', "OUTFILE", 0, "Save linked object file." },
-        { "build",   'b', "OUTFILE", 0, "Link and build executable." },
-        { "run",     'r', 0,         0, "Emulate linked program." },
-        { "verbose", 'v', 0,         0, "Print detailed info about progress." },
-        { "silent",  's', 0,         0, "Do not print anything." },
+        { "link",    'l', "OUTFILE", 0, "Save linked object file"            },
+        { "build",   'b', "OUTFILE", 0, "Link and build executable"          },
+        { "run",     'r', 0,         0, "Emulate linked program"             },
+        { "verbose", 'v', 0,         0, "Print detailed info about progress" },
+        { "silent",  's', 0,         0, "Do not print anything"              },
         { 0 } 
     };
     struct argp argp = { options, parse_opt, args_doc, doc, 0, 0, 0 };
