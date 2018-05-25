@@ -391,8 +391,8 @@ int main(int argc, char** argv)
                     if (op->label[0] == 0) 
                     {
                         // check little endian order
-                        data[2] = op->val >> 8;
-                        data[3] = op->val & 0xFF;
+                        data[2] = op->val & 0xFF;
+                        data[3] = op->val >> 8;
                     }
                     else
                     {
@@ -502,10 +502,10 @@ int main(int argc, char** argv)
                     {
                         if (!arg->label[0])
                         {
-                            int data_point = bytes;
-                            while (data_point-- > 0)
+                            int data_point = 0;
+                            while (data_point < bytes)
                             {
-                                prog_add_data(prog, (arg->val >> (8 * data_point)) & 0xFF );
+                                prog_add_data(prog, (arg->val >> (8 * data_point++)) & 0xFF );
                             }
                         }
                         else

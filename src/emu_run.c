@@ -74,7 +74,7 @@ void emu_run(Program* prog)
             }
             if (addr1 != ADDR_REGDIR)
             {
-                arg1_imm = (cpu_r(cpu, cpu->reg[7]) << 8) + (cpu_r(cpu, cpu->reg[7] + 1) & 0xFF);
+                arg1_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                 cpu->reg[7] += 2;
             }
             switch (addr1)
@@ -82,11 +82,11 @@ void emu_run(Program* prog)
             case ADDR_PSW: arg1_val = cpu->psw; break;
             case ADDR_IMM: arg1_val = arg1_imm; break;
             case ADDR_REGDIR: arg1_val = cpu->reg[arg1_code & 0b111]; break;
-            case ADDR_MEMDIR: arg1_val = (cpu_r(cpu, arg1_imm) << 8) + (cpu_r(cpu, arg1_imm + 1) & 0xFF); break;
+            case ADDR_MEMDIR: arg1_val = (cpu_r(cpu, arg1_imm) & 0xFF) + (cpu_r(cpu, arg1_imm + 1) << 8); break;
             case ADDR_REGINDDISP: 
                 arg1_val = 
-                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111]) << 8) + 
-                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1) & 0xFF);
+                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111]) & 0xFF) + 
+                    (cpu_r(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1) << 8);
                 break;
             }
 
@@ -103,7 +103,7 @@ void emu_run(Program* prog)
                 if (addr2 != ADDR_REGDIR)
                 {
                     if (addr1 != ADDR_REGDIR) return;
-                    arg2_imm = (cpu_r(cpu, cpu->reg[7]) << 8) + (cpu_r(cpu, cpu->reg[7] + 1) & 0xFF);
+                    arg2_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                     cpu->reg[7] += 2;
                 }
                 switch (addr2)
@@ -111,11 +111,11 @@ void emu_run(Program* prog)
                 case ADDR_PSW: arg2_val = cpu->psw; break;
                 case ADDR_IMM: arg2_val = arg2_imm; break;
                 case ADDR_REGDIR: arg2_val = cpu->reg[arg2_code & 0b111]; break;
-                case ADDR_MEMDIR: arg2_val = (cpu_r(cpu, arg2_imm) << 8) + (cpu_r(cpu, arg2_imm + 1) & 0xFF); break;
+                case ADDR_MEMDIR: arg2_val = (cpu_r(cpu, arg2_imm) & 0xFF) + (cpu_r(cpu, arg2_imm + 1) << 8); break;
                 case ADDR_REGINDDISP: 
                     arg2_val = 
-                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111]) << 8) + 
-                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111] + 1) & 0xFF); 
+                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111]) & 0xFF) + 
+                        (cpu_r(cpu, arg2_imm + cpu->reg[arg2_code & 0b111] + 1) << 8); 
                     break;
                 }
             }
@@ -174,25 +174,25 @@ void emu_run(Program* prog)
             break;
         case INS_PUSH:
             cpu->reg[6] -= 2;
-            cpu_w(cpu, cpu->reg[6], arg1_val >> 8);
-            cpu_w(cpu, cpu->reg[6] + 1, arg1_val & 0xFF);
+            cpu_w(cpu, cpu->reg[6], arg1_val & 0xFF);
+            cpu_w(cpu, cpu->reg[6] + 1, arg1_val >> 8);
             break;
         case INS_POP:
-            res_val = cpu_r(cpu, cpu->reg[6]++) << 8;
-            res_val |= cpu_r(cpu, cpu->reg[6]++);
+            res_val = cpu_r(cpu, cpu->reg[6]++) & 0xFF;
+            res_val |= cpu_r(cpu, cpu->reg[6]++) << 8;
             store_res = 1;
             break;
         case INS_CALL:
             cpu->reg[6] -= 2;
-            cpu_w(cpu, cpu->reg[6], cpu->reg[7] >> 8);
-            cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] & 0xFF);
+            cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+            cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
             cpu->reg[7] = arg1_val;
             break;
         case INS_IRET:
-            cpu->psw = cpu_r(cpu, cpu->reg[6]++) << 8;
-            cpu->psw |= cpu_r(cpu, cpu->reg[6]++);
-            cpu->reg[7] = cpu_r(cpu, cpu->reg[6]++) << 8;
-            cpu->reg[7] |= cpu_r(cpu, cpu->reg[6]++);
+            cpu->psw = cpu_r(cpu, cpu->reg[6]++) & 0xFF;
+            cpu->psw |= cpu_r(cpu, cpu->reg[6]++) << 8;
+            cpu->reg[7] = cpu_r(cpu, cpu->reg[6]++) & 0xFF;
+            cpu->reg[7] |= cpu_r(cpu, cpu->reg[6]++) << 8;
             break;
         case INS_MOV:
             res_val = arg2_val;
@@ -238,18 +238,17 @@ void emu_run(Program* prog)
             case ADDR_IMM: return; break;
             case ADDR_REGDIR: cpu->reg[arg1_code & 0b111] = res_val; break;
             case ADDR_MEMDIR:
-                cpu_w(cpu, arg1_imm, res_val >> 8);
-                cpu_w(cpu, arg1_imm + 1, res_val & 0xFF);
+                cpu_w(cpu, arg1_imm, res_val & 0xFF);
+                cpu_w(cpu, arg1_imm + 1, res_val >> 8);
                 break;
             case ADDR_REGINDDISP:
-                cpu_w(cpu, arg1_imm + cpu->reg[arg1_code & 0b111], res_val >> 8);
-                cpu_w(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1, res_val & 0xFF);
+                cpu_w(cpu, arg1_imm + cpu->reg[arg1_code & 0b111], res_val & 0xFF);
+                cpu_w(cpu, arg1_imm + cpu->reg[arg1_code & 0b111] + 1, res_val >> 8);
                 break;
             }
         }
 
         printf_char = cpu_r(cpu, 0xFFFE);
-        if (!printf_char) printf_char = cpu_r(cpu, 0xFFFF);
         if (printf_char)
         {
             printf("%c", printf_char);
