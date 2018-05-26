@@ -360,8 +360,8 @@ int main(int argc, char** argv)
             case INS_TEST: data[0] |= 0b00100000; break;
             case INS_PUSH: data[0] |= 0b00100100; break;
             case INS_POP: case INS_RET:  data[0] |= 0b00101000; break;
-            case INS_IRET: data[0] |= 0b00101100; break;
-            case INS_CALL: data[0] |= 0b00110000; break;
+            case INS_CALL: data[0] |= 0b00101100; break;
+            case INS_IRET: data[0] |= 0b00110000; break;
             case INS_MOV:  data[0] |= 0b00110100; break;
             case INS_SHL:  data[0] |= 0b00111000; break;
             case INS_SHR:  data[0] |= 0b00111100; break;

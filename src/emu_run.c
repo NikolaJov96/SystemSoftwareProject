@@ -3,10 +3,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 void emu_run(Program* prog)
 {
     CPU* cpu = new_cpu();
+    clock_t last_time, curr_time;
     switch (cpu_load_prog(cpu, prog))
     {
     case 1: printf("-1-\n"); return; break;
@@ -15,6 +17,7 @@ void emu_run(Program* prog)
     case 4: printf("-4-\n"); return; break;
     }
 
+    last_time = clock();
     while (1)
     {
         unsigned char ins_c1, ins_c2, arg1_code, arg2_code;
@@ -25,6 +28,37 @@ void emu_run(Program* prog)
         INS_COND cond;
         INSTRUCTION ins;
         ADDRESSING addr1, addr2;
+
+        printf_char = cpu_r(cpu, 0xFFFE);
+        if (printf_char)
+        {
+            // if (cpu_ri(cpu))  is this an interrupt?
+            printf("%c", printf_char);
+            fflush(stdout);
+            cpu_w(cpu, 0xFFFE, 0);
+            cpu_w(cpu, 0xFFFF, 0);
+        }
+
+        curr_time = clock();
+        if (curr_time - last_time > CLOCKS_PER_SEC)
+        {
+            last_time = curr_time;
+            if (cpu_ri(cpu))
+            {
+                uint16_t addr = (cpu_r(cpu, 2) & 0xFF) | (cpu_r(cpu, 3) << 8);
+                if (addr != 0)
+                {
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+                    cpu->reg[7] = addr;
+                    continue;
+                }
+            }
+        }
 
         ins_c1 = cpu_r(cpu, cpu->reg[7]++);
         ins_c2 = cpu_r(cpu, cpu->reg[7]++);
@@ -71,7 +105,7 @@ void emu_run(Program* prog)
             case 0b10: addr1 = ADDR_MEMDIR; break;
             case 0b11: addr1 = ADDR_REGINDDISP; break;
             }
-            if (addr1 != ADDR_REGDIR)
+            if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW)
             {
                 arg1_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                 cpu->reg[7] += 2;
@@ -99,9 +133,9 @@ void emu_run(Program* prog)
                 case 0b10: addr2 = ADDR_MEMDIR; break;
                 case 0b11: addr2 = ADDR_REGINDDISP; break;
                 }
-                if (addr2 != ADDR_REGDIR)
+                if (addr2 != ADDR_REGDIR && addr2 != ADDR_PSW)
                 {
-                    if (addr1 != ADDR_REGDIR) return;
+                    if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW) return;
                     arg2_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                     cpu->reg[7] += 2;
                 }
@@ -245,14 +279,6 @@ void emu_run(Program* prog)
                 break;
             }
         }
-
-        printf_char = cpu_r(cpu, 0xFFFE);
-        if (printf_char)
-        {
-            printf("%c", printf_char);
-            cpu_w(cpu, 0xFFFE, 0);
-            cpu_w(cpu, 0xFFFF, 0);
-        }
     }
 
     cpu_free(&cpu);
@@ -341,50 +367,74 @@ char cpu_w(CPU* cpu, uint16_t addr, char val)
     return 1;
 }
 
+int cpu_ri(CPU* cpu)
+{
+    if (cpu->psw & (1 << 15)) return 1;
+    return 0;
+}
+
+int cpu_rt(CPU* cpu)
+{
+    if (cpu->psw & (1 << 13)) return 1;
+    return 0;
+}
+
 int cpu_rn(CPU* cpu)
 {
-    if (cpu->psw & 0b1000) return 1;
+    if (cpu->psw & (1 << 3)) return 1;
     return 0;
 }
 
 int cpu_rc(CPU* cpu)
 {
-    if (cpu->psw & 0b100) return 1;
+    if (cpu->psw & (1 << 2)) return 1;
     return 0;
 }
 
 int cpu_ro(CPU* cpu)
 {
-    if (cpu->psw & 0b10) return 1;
+    if (cpu->psw & (1 << 1)) return 1;
     return 0;
 }
 
 int cpu_rz(CPU* cpu)
 {
-    if (cpu->psw & 0b1) return 1;
+    if (cpu->psw & (1 << 0)) return 1;
     return 0;
+}
+
+void cpu_wi(CPU* cpu, int i)
+{
+    if (i) cpu->psw |= (1 << 15);
+    else cpu->psw &= ~(1 << 15);
+}
+
+void cpu_wt(CPU* cpu, int t)
+{
+    if (t) cpu->psw |= (1 << 13);
+    else cpu->psw &= ~(1 << 13);
 }
 
 void cpu_wn(CPU* cpu, int n)
 {
-    if (n) cpu->psw |= 0b1000;
-    else cpu->psw &= ~0b1000;
+    if (n) cpu->psw |= (1 << 3);
+    else cpu->psw &= ~(1 << 3);
 }
 
 void cpu_wc(CPU* cpu, int c)
 {
-    if (c) cpu->psw |= 0b100;
-    else cpu->psw &= ~0b100;
+    if (c) cpu->psw |= (1 << 2);
+    else cpu->psw &= ~(1 << 2);
 }
 
 void cpu_wo(CPU* cpu, int o)
 {
-    if (o) cpu->psw |= 0b10;
-    else cpu->psw &= ~0b10;
+    if (o) cpu->psw |= (1 << 1);
+    else cpu->psw &= ~(1 << 1);
 }
 
 void cpu_wz(CPU* cpu, int z)
 {
-    if (z) cpu->psw |= 0b1;
-    else cpu->psw &= ~0b1;
+    if (z) cpu->psw |= (1 << 0);
+    else cpu->psw &= ~(1 << 0);
 }
