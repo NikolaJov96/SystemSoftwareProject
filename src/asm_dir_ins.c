@@ -113,36 +113,6 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
         }
     }
     {
-        int i = 0, start = 0, status = 0;
-
-        if (str[i] == '&') { i++; start = 1; status = 1; }
-        else if (str[i] == '$') { i++; start = 1; status = 2; }
-        if (str[i] >= 'a' && str[i] <= 'z')
-        {
-            while (str[i] >= 'a' && str[i] <= 'z') i++;
-            if (i < 50 && (str[i] == ' ' || str[i] == 0))
-            {
-                char label[50];
-                InsOp* new_op;
-                memcpy(label, str + start, i - start);
-                label[i - start] = 0;
-                if (check_reserved(label)) return 0;
-                
-                *start_ind += i;
-                new_op = calloc(1, sizeof(InsOp));
-                switch (status)
-                {
-                case 0: new_op->addr = ADDR_MEMDIR; break;
-                case 1: new_op->addr = ADDR_IMM; break;
-                case 2: new_op->addr = ADDR_PCREL; break;
-                }
-                memcpy(new_op->label, str + start, i - start);
-                new_op->label[i - start] = 0;
-                return new_op;
-            }
-        }
-    }
-    {
         int i = 0;
         int status = 0;
         if (str[i] == 'r')
@@ -241,6 +211,36 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
             }
         }
     }
+    {
+        int i = 0, start = 0, status = 0;
+
+        if (str[i] == '&') { i++; start = 1; status = 1; }
+        else if (str[i] == '$') { i++; start = 1; status = 2; }
+        if (str[i] >= 'a' && str[i] <= 'z')
+        {
+            while (str[i] >= 'a' && str[i] <= 'z') i++;
+            if (i < 50 && (str[i] == ' ' || str[i] == 0))
+            {
+                char label[50];
+                InsOp* new_op;
+                memcpy(label, str + start, i - start);
+                label[i - start] = 0;
+                if (check_reserved(label)) return 0;
+                
+                *start_ind += i;
+                new_op = calloc(1, sizeof(InsOp));
+                switch (status)
+                {
+                case 0: new_op->addr = ADDR_MEMDIR; break;
+                case 1: new_op->addr = ADDR_IMM; break;
+                case 2: new_op->addr = ADDR_PCREL; break;
+                }
+                memcpy(new_op->label, str + start, i - start);
+                new_op->label[i - start] = 0;
+                return new_op;
+            }
+        }
+    }
     return 0;
 }
 
@@ -315,7 +315,7 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
     switch (ins)
     {
     case INS_ADD: case INS_SUB: case INS_MUL: case INS_DIV: case INS_AND: 
-    case INS_OR: case INS_NOT: case INS_SHL: case INS_SHR: case INS_MOV: // mov explanation
+    case INS_OR: case INS_NOT: case INS_SHL: case INS_SHR: case INS_MOV:
         if (op_ind > 1) return 2;
         if (op_ind > 0 || addr != ADDR_IMM) return 0;
         return 1;
@@ -324,7 +324,7 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
         if (op_ind > 1) return 2;
         return 0; 
         break;
-    case INS_TEST:  // what is the result of test?
+    case INS_TEST:
         if (op_ind > 1) return 2;
         return 0;
         break;
@@ -451,15 +451,16 @@ int dir_parse(Directive* dir, char* line)
 
 int dir_len(Directive* dir, int curr_offset)
 {
-    int len = 0;
+    int len = 0, skip = 0;
     if (!dir) return 0;
     switch (dir->dir)
     {
     case DIR_CHAR: len = 1; break;
     case DIR_WORD: len = 2; break;
     case DIR_LONG: len = 4; break;
-    case DIR_ALIGN:  // fix parametriizing by n-th power of 2
+    case DIR_ALIGN:  // fix parametriizing by n-th power of 2, cant resolve on asm?
         if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;
+        skip = (1 << dir->args_head->val);
         if (curr_offset % dir->args_head->val == 0) return 0;
         return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;
         break;
