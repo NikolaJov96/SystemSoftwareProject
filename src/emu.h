@@ -16,6 +16,8 @@ typedef enum
 } INSTRUCTION;
 typedef enum { ADDR_PSW, ADDR_IMM, ADDR_REGDIR, ADDR_MEMDIR, ADDR_REGINDDISP } ADDRESSING;
 
+typedef enum  { IVT_STARTUP = 0, IVT_TIMER = 2, IVT_BAD_INS = 4, IVT_KEY_PRESS = 6 } IVT_ADDRESS;
+
 typedef struct InputListNode
 {
     char file[250];

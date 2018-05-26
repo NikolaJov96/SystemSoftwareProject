@@ -1,14 +1,21 @@
 #include "emu.h"
 
+#include <fcntl.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 void emu_run(Program* prog)
 {
     CPU* cpu = new_cpu();
-    clock_t last_time, curr_time;
+    clock_t last_time, curr_time;struct termios oldt, newt;
+    int ch;
+    int oldf;
+
     switch (cpu_load_prog(cpu, prog))
     {
     case 1: printf("-1-\n"); return; break;
@@ -17,6 +24,13 @@ void emu_run(Program* prog)
     case 4: printf("-4-\n"); return; break;
     }
 
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
     last_time = clock();
     while (1)
     {
@@ -24,7 +38,7 @@ void emu_run(Program* prog)
         uint16_t arg1_imm = 0, arg2_imm = 0;
         int16_t arg1_val = 0, arg2_val = 0, res_val = 0;
         char set_n = 0, set_c = 0, set_o = 0, set_z = 0, store_res = 0;
-        char printf_char;
+        char printf_char, input_char;
         INS_COND cond;
         INSTRUCTION ins;
         ADDRESSING addr1, addr2;
@@ -32,20 +46,47 @@ void emu_run(Program* prog)
         printf_char = cpu_r(cpu, 0xFFFE);
         if (printf_char)
         {
+            // printf("got: %x\n", printf_char);
             // if (cpu_ri(cpu))  is this an interrupt?
-            printf("%c", printf_char);
-            fflush(stdout);
+            if (printf_char == 0x10) printf("\n");
+            else
+            {
+                printf("%c", printf_char);
+                fflush(stdout);
+            }
             cpu_w(cpu, 0xFFFE, 0);
             cpu_w(cpu, 0xFFFF, 0);
         }
 
+        input_char = ch = getchar();
+        if (input_char != EOF)
+        {
+            if (cpu_ri(cpu))
+            {
+                cpu_w(cpu, 0xFFFC, input_char);
+                cpu_w(cpu, 0xFFFD, 0);
+                uint16_t addr = (cpu_r(cpu, IVT_KEY_PRESS) & 0xFF) | (cpu_r(cpu, IVT_KEY_PRESS + 1) << 8);
+                if (addr != 0)
+                {
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+                    cpu->reg[7] = addr;
+                    continue;
+                }
+            }
+        }
+
         curr_time = clock();
-        if (curr_time - last_time > CLOCKS_PER_SEC)
+        if (curr_time - last_time > CLOCKS_PER_SEC * 10)
         {
             last_time = curr_time;
             if (cpu_ri(cpu))
             {
-                uint16_t addr = (cpu_r(cpu, 2) & 0xFF) | (cpu_r(cpu, 3) << 8);
+                uint16_t addr = (cpu_r(cpu, IVT_TIMER) & 0xFF) | (cpu_r(cpu, IVT_TIMER + 1) << 8);
                 if (addr != 0)
                 {
                     cpu->reg[6] -= 2;
@@ -62,7 +103,7 @@ void emu_run(Program* prog)
 
         ins_c1 = cpu_r(cpu, cpu->reg[7]++);
         ins_c2 = cpu_r(cpu, cpu->reg[7]++);
-        if (ins_c1 == 0 && ins_c2 == 0) return;
+        if (ins_c1 == 0 && ins_c2 == 0) break;
         
         switch (ins_c1 >> 6)
         {
@@ -135,7 +176,7 @@ void emu_run(Program* prog)
                 }
                 if (addr2 != ADDR_REGDIR && addr2 != ADDR_PSW)
                 {
-                    if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW) return;
+                    if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW) break;
                     arg2_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                     cpu->reg[7] += 2;
                 }
@@ -264,10 +305,11 @@ void emu_run(Program* prog)
 
         if (store_res)
         {
+            if (addr1 == ADDR_IMM) break;
             switch (addr1)
             {
             case ADDR_PSW: cpu->psw = res_val; break;
-            case ADDR_IMM: return; break;
+            case ADDR_IMM: break;
             case ADDR_REGDIR: cpu->reg[arg1_code & 0b111] = res_val; break;
             case ADDR_MEMDIR:
                 cpu_w(cpu, arg1_imm, res_val & 0xFF);
@@ -280,6 +322,9 @@ void emu_run(Program* prog)
             }
         }
     }
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
 
     cpu_free(&cpu);
 }
