@@ -405,15 +405,25 @@ static int is_hex(char c)
     return 0;
 }
 
-PROG_RET prog_load(Program* prog, char* path)
+PROG_RET prog_load(Program* prog, LOAD_MODE mode, void* arg)
 {
     FILE* file;
+    char** line_arr;
+    int line_arr_ind = 0;
     char line[100];
     char end;
 
     if (!prog) return PROG_ERT_INVALID_PROGRAM;
-    file = fopen(path, "r");
-    if (!file) return PROG_RET_INVALID_PATH;
+
+    if (mode == LOAD_FILE)
+    {
+        file = fopen((char*)arg, "r");
+        if (!file) return PROG_RET_INVALID_PATH;
+    }
+    else
+    {
+        line_arr = (char**)arg;
+    }
     
     while(1)
     {
@@ -425,7 +435,15 @@ PROG_RET prog_load(Program* prog, char* path)
         int offset;
         int reach;
 
-        if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+        if (mode == LOAD_FILE) 
+        {
+            if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+        }
+        else 
+        {
+            if (!line_arr[line_arr_ind]) return PROG_ERT_INVALID_PROGRAM;
+            strcpy(line, line_arr[line_arr_ind++]);
+        }
         if (sscanf(line, "%d %s %d %d %d %d", &type, name, &sym_id, &section_id, &offset, &reach) != 6) break;
 
         new_sym = malloc(sizeof(SymbolTableNode));
@@ -460,7 +478,15 @@ PROG_RET prog_load(Program* prog, char* path)
             int rel;
             int sym_id;
 
-            if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+            if (mode == LOAD_FILE) 
+            {
+                if (!fgets(line, sizeof(line), file)) return PROG_ERT_INVALID_PROGRAM;
+            }
+            else 
+            {
+                if (!line_arr[line_arr_ind]) return PROG_ERT_INVALID_PROGRAM;
+                strcpy(line, line_arr[line_arr_ind++]);
+            }
             if (sscanf(line, "%x %d %d%c", &offset, &rel, &sym_id, &end) != 4) break;
             if (end != '\n') break;
 
@@ -487,15 +513,30 @@ PROG_RET prog_load(Program* prog, char* path)
                 prog_add_data(prog, byte);
             }
 
-            if (!fgets(line, sizeof(line), file))
+            if (mode == LOAD_FILE)
             {
-                line[0] = 0;
-                break;
+                if (!fgets(line, sizeof(line), file))
+                {
+                    line[0] = 0;
+                    break;
+                }
+            }
+            else 
+            {
+                if (!line_arr[line_arr_ind]) 
+                {
+                    line[0] = 0;
+                    break;
+                }
+                strcpy(line, line_arr[line_arr_ind++]);
             }
         }
     }
 
-    fclose(file);
+    if (mode == LOAD_FILE) 
+    {
+        fclose(file);
+    }
     return PROG_RET_SUCCESS;
 }
 

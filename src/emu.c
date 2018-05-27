@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     for (input_node = args.in_head, file_ind = 0; input_node; input_node = input_node->next, file_ind++)
     {
         prog = new_program();
-        switch(prog_load(prog, input_node->file))
+        switch(prog_load(prog, LOAD_FILE, input_node->file))
         {
         case PROG_RET_INVALID_PATH: 
             printf("Cannot open input file: %s.\n", input_node->file); exit(1); break;
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
         prog_free(&prog);
     }
 
-    if (args.verb == ARGS_VERB_VERBOSE) printf("  Linking combined file.\n");
+    if (args.verb == ARGS_VERB_VERBOSE) printf("Linking combined file.\n");
 
     if (!prog_relocate(linked_prog))
     {
@@ -98,6 +98,7 @@ int main(int argc, char** argv)
 
     prog = new_program();
     prog_link(prog, linked_prog);
+    prog_free(&linked_prog);
 
     if (!prog_test_addr(prog))
     {
@@ -107,7 +108,7 @@ int main(int argc, char** argv)
 
     if (args.do_link)
     {
-        if (args.verb == ARGS_VERB_VERBOSE) printf("  Saving object file.\n");
+        if (args.verb == ARGS_VERB_VERBOSE) printf("Saving object file.\n");
         if (prog_store(prog, args.link_target) != PROG_RET_SUCCESS)
         {
             printf("Colud not save linked object file\n"); 
@@ -117,17 +118,92 @@ int main(int argc, char** argv)
 
     if (args.do_build)
     {
-        // generate executable
-    }
+        FILE* file;
+        char line[250];
+        char** prog_arr = calloc(64, sizeof(char*));
+        int arr_len = 0, buff_len = 64, i;
+        
+        if (args.verb == ARGS_VERB_VERBOSE) printf("Building executable.\n");
+        
+        if (prog_store(prog, "src/temp_file.c") != PROG_RET_SUCCESS)
+        {
+            printf("Colud not generate runnable\n"); 
+            exit(1);
+        }
+        file = fopen("src/temp_file.c", "r");
+        if (!file)
+        {
+            printf("Colud not generate runnable\n");
+            strcpy(line, "rm ");
+            strcat(line, "src/temp_file.c");
+            system(line);
+            exit(1);
+        }
+        while (fgets(line, sizeof(line), file))
+        {
+            int line_len = strlen(line);
+            if (arr_len >= buff_len)
+            {
+                buff_len *= 2;
+                prog_arr = realloc(prog_arr, buff_len * sizeof(char*));
+            }
+            prog_arr[arr_len] = calloc(line_len + 1, sizeof(char));
+            strcpy(prog_arr[arr_len], line);
+            arr_len++;
+        }
+        if (arr_len >= buff_len)
+        {
+            buff_len *= 2;
+            prog_arr = realloc(prog_arr, buff_len * sizeof(char*));
+        }
+        prog_arr[arr_len++] = calloc(1, sizeof(char));
+        fclose(file);
+        
+        file = fopen("src/temp_file.c", "w");
+        fprintf(file, "char* prgo_cont[250] = {\n");
+        
+        for (i = 0; i < arr_len - 1; i++)
+        {
+            int line_len = strlen(prog_arr[i]);
+            if (line_len > 1)
+            {
+                prog_arr[i][line_len - 1] = 0;
+            }
+            fprintf(file, "    \"%s\\n\",\n", prog_arr[i]);
+        }
+        fprintf(file, "    \"%s\"\n", prog_arr[arr_len - 1]);
+        fprintf(file, "};\n");
+        fprintf(file, "#include \"prog.h\"\n");
+        fprintf(file, "#include \"emu.h\"\n");
+        fprintf(file, "int main()\n");
+        fprintf(file, "{\n");
+        fprintf(file, "    Program* prog = new_program();\n");
+        fprintf(file, "    prog_load(prog, LOAD_STR_ARR, prgo_cont);\n");
+        fprintf(file, "    emu_run(prog);\n");
+        fprintf(file, "    prog_free(&prog);\n");
+        fprintf(file, "}\n");
+        fclose(file);
+        for (i = 0; i < arr_len; i++) free(prog_arr[i]);
+        free(prog_arr);
+        
+        strcpy(line, "gcc -o ");
+        strcat(line, args.build_target);
+        strcat(line, " src/temp_file.c src/prog.c src/emu_run.c");
+        system(line);
 
+        strcpy(line, "rm ");
+        strcat(line, "src/temp_file.c");
+        system(line);
+    }
+    
     if (args.do_run)
     {
-        if (args.verb == ARGS_VERB_VERBOSE) printf("  Running emulation.\n");
+        if (args.verb == ARGS_VERB_VERBOSE) printf("Running emulation.\n");
         emu_run(prog);
     }
 
-    if (args.verb == ARGS_VERB_VERBOSE) printf("\n  Done.\n");
+    if (args.verb == ARGS_VERB_VERBOSE) printf("\nDone.\n");
 
-    prog_free(&linked_prog);
+    prog_free(&prog);
     return 0;
 }

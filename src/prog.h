@@ -7,6 +7,8 @@ typedef enum { REACH_LOCAL, REACH_GLOBAL } SYM_REACH;
 typedef enum { REL_16, REL_PC16 } RELOCATION;
 typedef enum { PROG_RET_SUCCESS, PROG_RET_INVALID_PATH, PROG_ERT_INVALID_PROGRAM } PROG_RET;
 
+typedef enum { LOAD_FILE, LOAD_STR_ARR } LOAD_MODE;
+
 typedef struct SymbolTableNode
 {
     SYM_TYPE type;
@@ -61,7 +63,7 @@ int prog_relocate(Program* prog);
 int prog_link(Program* dst, Program* src);
 int prog_test_addr(Program* prog);
 
-PROG_RET prog_load(Program* prog, char* path);
+PROG_RET prog_load(Program* prog, LOAD_MODE mode, void* arg);
 PROG_RET prog_store(Program* prog, char* path);
 
 #endif  // PROG_H
