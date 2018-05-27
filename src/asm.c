@@ -203,7 +203,9 @@ int main(int argc, char** argv)
             continue;
         }
 
-        if (curr_section == SEC_NONE)
+        if (curr_section == SEC_NONE && 
+            !(strlen(line) > 8 && line[0] == '.' && line[1] == 'g' && line[2] == 'l' &&
+            line[3] == 'o' && line[4] == 'b' && line[5] == 'a' && line[6] == 'l'))
         {
             sprintf(err_line, "Unknown section on line %d : %s", line_num, line);
             exit_prog(args.verb, input_file);

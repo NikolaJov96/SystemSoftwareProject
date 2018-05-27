@@ -81,7 +81,7 @@ void emu_run(Program* prog)
         }
 
         curr_time = clock();
-        if (curr_time - last_time > CLOCKS_PER_SEC * 10)
+        if (curr_time - last_time > CLOCKS_PER_SEC)
         {
             last_time = curr_time;
             if (cpu_ri(cpu))
