@@ -220,7 +220,13 @@ int prog_link(Program* dst, Program* src)
     SymbolTableNode* src_sym;
     DataListNode* src_data;
     DataListNode* dst_data;
+    int last_sec_id = 0, initialy_empty = 0;
     if (!dst || !src) return 0;
+
+    if (!dst->symbol_table_head)
+    {
+        initialy_empty = 1;
+    }
 
     dst_data = dst->data_head;
     for (src_data = src->data_head; src_data; src_data = src_data->next)
@@ -247,6 +253,7 @@ int prog_link(Program* dst, Program* src)
 
         if (src_sym->type == SYM_SECTION)
         {
+            last_sec_id = src_sym->sym_id;
             if (src_sym->offset == -1) 
             {
                 if (!dst->symbol_table_head) src_sym->offset = 100;
@@ -262,7 +269,16 @@ int prog_link(Program* dst, Program* src)
                     src_sym->offset += dst->data_head->data_size;
                 }
             }
+
             prog_add_sym(dst, SYM_SECTION, src_sym->name, src_sym->offset);
+            
+            for (dst_sym = dst->symbol_table_head; dst_sym; dst_sym = dst_sym->next)
+            {
+                if (initialy_empty && dst_sym->section_id == src_sym->sym_id)
+                {
+                    dst_sym->section_id = dst->symbol_table_tail->sym_id;
+                }
+            }
             continue;
         }
 
@@ -278,6 +294,10 @@ int prog_link(Program* dst, Program* src)
                 prog_add_sym(dst, SYM_LABEL, src_sym->name, src_sym->offset);
                 dst_sym = dst->symbol_table_tail;
                 if (src_sym->section_id == 0) dst_sym->section_id = 0;
+                if (initialy_empty && src_sym->section_id != last_sec_id)
+                {
+                    dst_sym->section_id = src_sym->section_id;
+                }
                 dst_sym->reach = REACH_GLOBAL;
             }
             else 
@@ -287,6 +307,7 @@ int prog_link(Program* dst, Program* src)
                 if (dst_sym->section_id == 0)
                 {
                     dst_sym->section_id = dst->symbol_table_tail->section_id;
+                    dst_sym->offset = src_sym->offset;
                 }
             }
         }
