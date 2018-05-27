@@ -228,7 +228,7 @@ int prog_link(Program* dst, Program* src)
         initialy_empty = 1;
     }
 
-    dst_data = dst->data_head;
+    dst_data = dst->data_tail;
     for (src_data = src->data_head; src_data; src_data = src_data->next)
     {
         DataListNode* new_node;
@@ -319,8 +319,8 @@ int prog_link(Program* dst, Program* src)
             {
                 if (src_rel->sym_id == src_sym->sym_id)
                 {
-                    if (src_sym->section_id == 0) src_rel->sym_id += dst->section_co;
-                    else src_rel->sym_id = -1;
+                    if (src_sym->section_id == 0) src_rel->sym_id = -dst_sym->sym_id;
+                    else src_rel->sym_id = 0;
                 }
             }
         }
@@ -334,12 +334,12 @@ int prog_link(Program* dst, Program* src)
         for (src_rel = src_data->rel_head; src_rel; src_rel = src_rel->next)
         {
             RelListNode* new_rel;
-            if (src_rel->sym_id == -1) continue;
+            if (src_rel->sym_id == 0) continue;
             
             new_rel = malloc(sizeof(RelListNode));
             new_rel->offset = src_rel->offset;
             new_rel->rel = src_rel->rel;
-            new_rel->sym_id = src_rel->sym_id;
+            new_rel->sym_id = -src_rel->sym_id;
             new_rel->next = 0;
 
             if (!dst_data->rel_head) dst_data->rel_head = new_rel;
@@ -588,7 +588,7 @@ PROG_RET prog_store(Program* prog, char* path)
                 fprintf(file, "\n");
             }
         }
-        if ((i + 1) % 16 != 0) fprintf(file, "\n");
+        if (i % 16 != 0) fprintf(file, "\n");
     }
     
     fclose(file);

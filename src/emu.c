@@ -179,7 +179,7 @@ int main(int argc, char** argv)
         fprintf(file, "{\n");
         fprintf(file, "    Program* prog = new_program();\n");
         fprintf(file, "    prog_load(prog, LOAD_STR_ARR, prgo_cont);\n");
-        fprintf(file, "    emu_run(prog);\n");
+        fprintf(file, "    emu_run(prog, 1);\n");
         fprintf(file, "    prog_free(&prog);\n");
         fprintf(file, "}\n");
         fclose(file);
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
     if (args.do_run)
     {
         if (args.verb == ARGS_VERB_VERBOSE) printf("Running emulation.\n");
-        emu_run(prog);
+        emu_run(prog, args.verb == ARGS_VERB_VERBOSE);
     }
 
     if (args.verb == ARGS_VERB_VERBOSE) printf("\nDone.\n");

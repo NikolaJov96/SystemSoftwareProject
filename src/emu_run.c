@@ -9,7 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
-void emu_run(Program* prog)
+void emu_run(Program* prog, int verbose)
 {
     CPU* cpu = new_cpu();
     clock_t last_time, curr_time;struct termios oldt, newt;
@@ -18,10 +18,10 @@ void emu_run(Program* prog)
 
     switch (cpu_load_prog(cpu, prog))
     {
-    case 1: printf("-1-\n"); return; break;
-    case 2: printf("-2-\n"); return; break;
-    case 3: printf("-3-\n"); return; break;
-    case 4: printf("-4-\n"); return; break;
+    case 1: if (verbose) printf("Fatal error.\n"); return; break;
+    case 2: if (verbose) printf("Start symbol not defined.\n"); return; break;
+    case 3: if (verbose) printf("Cannot find start symbol section.\n"); return; break;
+    case 4: if (verbose) printf("There are unresolved relocations in the program.\n"); return; break;
     }
 
     tcgetattr(STDIN_FILENO, &oldt);
@@ -30,6 +30,21 @@ void emu_run(Program* prog)
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
     fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    if (cpu_ri(cpu))
+    {
+        uint16_t addr = (cpu_r(cpu, IVT_STARTUP) & 0xFF) | (cpu_r(cpu, IVT_STARTUP + 1) << 8);
+        if (addr != 0)
+        {
+            cpu->reg[6] -= 2;
+            cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+            cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+            cpu->reg[6] -= 2;
+            cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+            cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+            cpu->reg[7] = addr;
+        }
+    }
 
     last_time = clock();
     while (1)
@@ -46,8 +61,6 @@ void emu_run(Program* prog)
         printf_char = cpu_r(cpu, 0xFFFE);
         if (printf_char)
         {
-            // printf("got: %x\n", printf_char);
-            // if (cpu_ri(cpu))  is this an interrupt?
             if (printf_char == 0x10) printf("\n");
             else
             {
@@ -377,6 +390,7 @@ int cpu_load_prog(CPU* cpu, Program* prog)
 
     cpu->reg[6] = (1 << 16) - 128;
     cpu->reg[7] = sec_node->offset + sym_node->offset;
+    cpu_wi(cpu, 1);
     sym_node = prog->symbol_table_head;
     for (data_node = prog->data_head; data_node; data_node = data_node->next)
     {

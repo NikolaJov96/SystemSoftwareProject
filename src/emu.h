@@ -44,7 +44,7 @@ typedef struct CPU
 } CPU;
 
 void parse_args(int argc, char** argv, EmuArgs* args);
-void emu_run(Program* prog);
+void emu_run(Program* prog, int verbose);
 
 CPU* new_cpu();
 void cpu_free(CPU** cpu);

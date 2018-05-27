@@ -512,9 +512,20 @@ int main(int argc, char** argv)
                                 prog_add_data(prog, (arg->val >> (8 * data_point++)) & 0xFF );
                             }
                         }
+                        else if (dir.dir == DIR_WORD)
+                        {
+                            if (!prog_add_rel(prog, acc_offset + 2 * i, REL_16, arg->label))
+                            {
+                                sprintf(err_line, "Unknown label '%s', line %d : %s", arg->label, line_num, line);
+                                exit_prog(args.verb, input_file);
+                            }
+                            prog_add_data(prog, 0);
+                            prog_add_data(prog, 0);
+                        }
                         else
                         {
-                            // relocation
+                            sprintf(err_line, "Cannot use label with this directive, line %d : %s", line_num, line);
+                            exit_prog(args.verb, input_file);
                         }
                     }
                 }
