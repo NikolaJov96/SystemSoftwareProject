@@ -13,7 +13,7 @@ loop:   mov     *65534  r0
         add     r0      1
         add     r1      1
         cmp     numc    r1
-        jmpgt   loop
+        jmpgt   &loop
         ; allow interrupts
         or      psw     32768
         ; second loop

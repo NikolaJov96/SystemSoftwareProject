@@ -52,7 +52,7 @@ void emu_run(Program* prog, int verbose)
         unsigned char ins_c1, ins_c2, arg1_code, arg2_code;
         uint16_t arg1_imm = 0, arg2_imm = 0;
         int16_t arg1_val = 0, arg2_val = 0, res_val = 0;
-        char set_n = 0, set_c = 0, set_o = 0, set_z = 0, store_res = 0;
+        char set_n = 0, set_z = 0, store_res = 0;
         char printf_char, input_char;
         INS_COND cond;
         INSTRUCTION ins;
@@ -224,12 +224,25 @@ void emu_run(Program* prog, int verbose)
         {
         case INS_ADD: 
             res_val = arg1_val + arg2_val;
-            set_n = 1; set_c = 1; set_o = 1; set_z = 1;
+            if ((arg1_val > 0 && arg2_val > 0 && res_val < 0) ||
+                (arg1_val < 0 && arg2_val < 0 && res_val > 0)) cpu_wo(cpu, 1);
+            else cpu_wo(cpu, 0);
+            if (((arg1_val > 0 && arg2_val < 0) || (arg1_val < 0 && arg2_val > 0)) && res_val >= 0) cpu_wc(cpu, 1);
+            else if (arg1_val < 0 && arg2_val < 0) cpu_wc(cpu, 1);
+            else cpu_wc(cpu, 0);
+            set_n = 1; set_z = 1;
             store_res = 1;
             break;
         case INS_SUB:
             res_val = arg1_val - arg2_val;
-            set_n = 1; set_c = 1; set_o = 1; set_z = 1;
+            if (arg2_val == 0b10000000) cpu_wo(cpu, 1);
+            else if ((arg1_val > 0 && arg2_val < 0 && res_val < 0) ||
+                (arg1_val < 0 && arg2_val > 0 && res_val > 0)) cpu_wo(cpu, 1);
+            else cpu_wo(cpu, 0);
+            if (((arg1_val > 0 && -arg2_val < 0) || (arg1_val < 0 && -arg2_val > 0)) && res_val >= 0) cpu_wc(cpu, 1);
+            else if (arg1_val < 0 && -arg2_val < 0) cpu_wc(cpu, 1);
+            else cpu_wc(cpu, 0);
+            set_n = 1; set_z = 1;
             store_res = 1;
             break;
         case INS_MUL:
@@ -244,7 +257,14 @@ void emu_run(Program* prog, int verbose)
             break;
         case INS_CMP:
             res_val = arg1_val - arg2_val;
-            set_n = 1; set_c = 1; set_o = 1; set_z = 1;
+            if (arg2_val == 0b10000000) cpu_wo(cpu, 1);
+            else if ((arg1_val > 0 && arg2_val < 0 && res_val < 0) ||
+                (arg1_val < 0 && arg2_val > 0 && res_val > 0)) cpu_wo(cpu, 1);
+            else cpu_wo(cpu, 0);
+            if (((arg1_val > 0 && -arg2_val < 0) || (arg1_val < 0 && -arg2_val > 0)) && res_val >= 0) cpu_wc(cpu, 1);
+            else if (arg1_val < 0 && -arg2_val < 0) cpu_wc(cpu, 1);
+            else cpu_wc(cpu, 0);
+            set_n = 1; set_z = 1;
             break;
         case INS_AND:
             res_val = arg1_val & arg2_val;
@@ -295,12 +315,18 @@ void emu_run(Program* prog, int verbose)
             break;
         case INS_SHL:
             res_val = arg1_val << arg2_val;
-            set_n = 1; set_c = 1; set_z = 1;
+            if (arg2_val == 0 || arg2_val > 15) cpu_wc(cpu, 0);
+            else if (arg1_val & (1 << (16 - arg2_val))) cpu_wc(cpu, 1);
+            else cpu_wc(cpu, 0);
+            set_n = 1; set_z = 1;
             store_res = 1;
             break;
         case INS_SHR:
             res_val = arg1_val >> arg2_val;
-            set_n = 1; set_c = 1; set_z = 1;
+            if (arg2_val == 0 || arg2_val > 15) cpu_wc(cpu, 0);
+            else if (arg1_val & (1 << (arg2_val - 1))) cpu_wc(cpu, 1);
+            else cpu_wc(cpu, 0);
+            set_n = 1; set_z = 1;
             store_res = 1;
             break;
         }
@@ -309,14 +335,6 @@ void emu_run(Program* prog, int verbose)
         {
             if (res_val < 0) cpu_wn(cpu, 1);
             else cpu_wn(cpu, 0);
-        }
-        if (set_c)
-        {
-
-        }
-        if (set_o)
-        {
-
         }
         if (set_z)
         {

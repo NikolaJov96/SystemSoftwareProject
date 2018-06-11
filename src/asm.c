@@ -373,24 +373,28 @@ int main(int argc, char** argv)
             break;
             }
             
-            for (op = ins.ops_head, i = 0; op; op = op->next, i++)
+            if (ins.ins == INS_CALL || ins.ins == INS_JMP) 
+            {
+                char byte = 0b00001000 | 0b00000111;
+                data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5;
+                i = 1;
+            }
+            else i = 0;
+            for (op = ins.ops_head; op; op = op->next, i++)
             {
                 char byte = 0;
                 if (op->addr == ADDR_PSW) byte = 0b00000111;
-                else if (op->addr == ADDR_REGDIR) byte = 0b000001000 | (op->reg & 0b111);
+                else if (op->addr == ADDR_REGDIR) byte = 0b00001000 | (op->reg & 0b111);
                 else
                 {
                     imm_value = 1;
 
                     switch (op->addr)
                     {
-                    case ADDR_IMM: byte = 0b0000000; break;
-                    case ADDR_MEMDIR:
-                        if (ins.ins != INS_JMP) byte = 0b00010000;
-                        else byte = 0b0001000 | 0b00000111;
-                        break;
+                    case ADDR_IMM: byte = 0b00000000; break;
+                    case ADDR_MEMDIR: byte = 0b00010000; break;
                     case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
-                    case ADDR_PCREL: byte = 0b00001000 | 0b00000111; break;
+                    case ADDR_PCREL: byte = 0b00000000; break;
                     }
 
                     if (op->label[0] == 0) 
@@ -423,6 +427,11 @@ int main(int argc, char** argv)
 
                 if (i == 0) { data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5; }
                 else if (i == 1) { data[1] |= byte & 0b11111; }
+            }
+            if (ins.num_ops == 0 && ins.ins == INS_RET){
+                char byte = 0;
+                byte = 0b00001111;
+                data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5;
             }
 
             acc_offset += 2;
