@@ -54,6 +54,7 @@ char cpu_r(CPU* cpu, uint16_t addr);
 char cpu_w(CPU* cpu, uint16_t addr, char val);
 
 int cpu_ri(CPU* cpu);
+int cpu_rd(CPU* cpu);
 int cpu_rt(CPU* cpu);
 int cpu_rn(CPU* cpu);
 int cpu_rc(CPU* cpu);
@@ -61,6 +62,7 @@ int cpu_ro(CPU* cpu);
 int cpu_rz(CPU* cpu);
 
 void cpu_wi(CPU* cpu, int i);
+void cpu_wd(CPU* cpu, int d);
 void cpu_wt(CPU* cpu, int t);
 void cpu_wn(CPU* cpu, int n);
 void cpu_wc(CPU* cpu, int c);

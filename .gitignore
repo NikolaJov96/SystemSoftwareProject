@@ -1,6 +1,10 @@
-
+# ignore project object files
 obj/
-example/
 
+# ignore example object and executable files, but not sources
+example/*
+!example/*.s
+
+# ignore executables
 asm
 emu

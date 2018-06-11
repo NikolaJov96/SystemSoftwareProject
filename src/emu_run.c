@@ -58,6 +58,14 @@ void emu_run(Program* prog, int verbose)
         INSTRUCTION ins;
         ADDRESSING addr1, addr2;
 
+        if (cpu_rd(cpu)){
+            int i;
+            printf("DEBUG regs: ");
+            for (i = 0; i < 8; i++) printf("%d ", cpu->reg[i]);
+            printf(" i:%d d:%d t:%d n:%d c:%d o:%d z:%d\n", 
+                cpu_ri(cpu), cpu_rd(cpu), cpu_rt(cpu), cpu_rn(cpu), cpu_rc(cpu), cpu_ro(cpu), cpu_rz(cpu));
+        }
+
         printf_char = cpu_r(cpu, 0xFFFE);
         if (printf_char)
         {
@@ -209,7 +217,7 @@ void emu_run(Program* prog, int verbose)
         }
 
         if (cond == COND_EQ && !cpu_rz(cpu)) continue;
-        if (cond == COND_NE && !cpu_rn(cpu)) continue;
+        if (cond == COND_NE && cpu_rz(cpu)) continue;
         if (cond == COND_GT && (cpu_rn(cpu) || cpu_rz(cpu))) continue;
 
         switch (ins)
@@ -230,7 +238,7 @@ void emu_run(Program* prog, int verbose)
             store_res = 1;
             break;
         case INS_DIV:
-            res_val = arg1_val * arg2_val;
+            res_val = arg1_val / arg2_val;
             set_n = 1; set_z = 1;
             store_res = 1;
             break;
@@ -432,6 +440,12 @@ int cpu_ri(CPU* cpu)
     return 0;
 }
 
+int cpu_rd(CPU* cpu)
+{
+    if (cpu->psw & (1 << 14)) return 1;
+    return 0;
+}
+
 int cpu_rt(CPU* cpu)
 {
     if (cpu->psw & (1 << 13)) return 1;
@@ -466,6 +480,12 @@ void cpu_wi(CPU* cpu, int i)
 {
     if (i) cpu->psw |= (1 << 15);
     else cpu->psw &= ~(1 << 15);
+}
+
+void cpu_wd(CPU* cpu, int d)
+{
+    if (d) cpu->psw |= (1 << 14);
+    else cpu->psw &= ~(1 << 14);
 }
 
 void cpu_wt(CPU* cpu, int t)

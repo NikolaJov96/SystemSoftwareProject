@@ -64,7 +64,8 @@ Program status register is additional 16-bit register:
 - psw2 - carry flag
 - psw3 - negative flag
 - psw13 - 1s timer interrupt mask
-- psw14 - global interrupt mask
+- psw14 - print debug (registers anmd flags) after each instruction
+- psw15 - global interrupt mask
 
 Interrupt vector table contains 8 entries and begins on address 0:
 - 0 - startup routine
