@@ -302,7 +302,8 @@ void emu_run(Program* prog, int verbose)
             cpu->reg[6] -= 2;
             cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
             cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
-            cpu->reg[7] = arg1_imm;
+            if (addr1 == ADDR_REGDIR) cpu->reg[7] = arg1_val;
+            else cpu->reg[7] = arg1_imm;
             break;
         case INS_IRET:
             cpu->psw = cpu_r(cpu, cpu->reg[6]++) & 0xFF;

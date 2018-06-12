@@ -43,32 +43,14 @@ wait:   cmp     r1      *16448
         ; check all instructions
 
         ; check add 1
-        mov     r3      5
-        add     r3      5
-        cmp     r3      10
-        moveq   *65534  r0
-        cmp     r3      10
-        movne   *65534  r1
         call    chadd
-        mov     *65534  r2
 
         ; check sub 2
-        mov     r3      -10
-        sub     r3      -5
-        cmp     r3      -5
-        moveq   *65534  r0
-        cmp     r3      -5
-        movne   *65534  r1
-        mov     *65534  r2
+        call    $chsub
 
         ; check mul 3
-        mov     r3      -7
-        mul     r3      -3
-        cmp     r3      21
-        moveq   *65534  r0
-        cmp     r3      21
-        movne   *65534  r1
-        mov     *65534  r2
+        mov     r3      &chmul
+        call    r3
 
         ; check div 4
         mov     r3      10
@@ -134,12 +116,31 @@ wait:   cmp     r1      *16448
 
 .word   0
 
-chadd:  push    r0
-        mov     r0      chrsp
-        mov     *65534  r0
-        mov     r0      chra
-        mov     *65534  r0
-        pop     r0
+chadd:  mov     r3      5
+        add     r3      5
+        cmp     r3      10
+        moveq   *65534  r0
+        cmp     r3      10
+        movne   *65534  r1
+        mov     *65534  r2
+        ret
+
+chsub:  mov     r3      -10
+        sub     r3      -5
+        cmp     r3      -5
+        moveq   *65534  r0
+        cmp     r3      -5
+        movne   *65534  r1
+        mov     *65534  r2
+        ret
+
+chmul:  mov     r3      -7
+        mul     r3      -3
+        cmp     r3      21
+        moveq   *65534  r0
+        cmp     r3      21
+        movne   *65534  r1
+        mov     *65534  r2
         ret
 
 .data
