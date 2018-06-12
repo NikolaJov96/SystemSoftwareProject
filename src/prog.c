@@ -203,7 +203,7 @@ int prog_relocate(Program* prog)
             while (section_sym->sym_id != sym_node->section_id) section_sym = section_sym->next;
 
             if (rel_node->rel == REL_16) fill_addr = section_sym->offset + sym_node->offset;
-            else fill_addr = section_sym->offset + sym_node->offset - curr_section_sym->offset - rel_node->offset;
+            else fill_addr = section_sym->offset + sym_node->offset - (curr_section_sym->offset + rel_node->offset + 2);
             data_node->data_buffer[rel_node->offset] = fill_addr & 0xFF;
             data_node->data_buffer[rel_node->offset + 1] = (fill_addr >> 8) & 0xFF;
         }

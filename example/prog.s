@@ -4,6 +4,10 @@
 ; After assembling all three example files link theum using for example:
 ;   ./emu -vr -b example/prog1 -l example/prog1.o example/prog.o example/prog_d.o example/prog_startup.o
 
+; Debug enable/disable command:         
+;       or      psw     16384
+;       and     psw     -16385
+
 .global start, numc, chra, chrsp, chrnl
 .text
 start: 
@@ -13,7 +17,7 @@ loop:   mov     *65534  r0
         add     r0      1
         add     r1      1
         cmp     numc    r1
-        jmpgt   &loop
+        jmpgt   loop
         ; allow interrupts
         or      psw     32768
         ; second loop
@@ -45,6 +49,7 @@ wait:   cmp     r1      *16448
         moveq   *65534  r0
         cmp     r3      10
         movne   *65534  r1
+        call    chadd
         mov     *65534  r2
 
         ; check sub 2
@@ -128,6 +133,14 @@ wait:   cmp     r1      *16448
         mov     *65534  r2
 
 .word   0
+
+chadd:  push    r0
+        mov     r0      chrsp
+        mov     *65534  r0
+        mov     r0      chra
+        mov     *65534  r0
+        pop     r0
+        ret
 
 .data
         ;.align  16

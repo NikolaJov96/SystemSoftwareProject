@@ -361,7 +361,7 @@ int main(int argc, char** argv)
             case INS_NOT:  data[0] |= 0b00011100; break;
             case INS_TEST: data[0] |= 0b00100000; break;
             case INS_PUSH: data[0] |= 0b00100100; break;
-            case INS_POP: case INS_RET:  data[0] |= 0b00101000; break;
+            case INS_POP: case INS_RET: data[0] |= 0b00101000; break;
             case INS_CALL: data[0] |= 0b00101100; break;
             case INS_IRET: data[0] |= 0b00110000; break;
             case INS_MOV:  data[0] |= 0b00110100; break;
@@ -373,7 +373,7 @@ int main(int argc, char** argv)
             break;
             }
             
-            if (ins.ins == INS_CALL || ins.ins == INS_JMP) 
+            if (ins.ins == INS_JMP) 
             {
                 char byte = 0b00001000 | 0b00000111;
                 data[0] |= (byte >> 3) & 0b11; data[1] |= byte << 5;
@@ -392,9 +392,15 @@ int main(int argc, char** argv)
                     switch (op->addr)
                     {
                     case ADDR_IMM: byte = 0b00000000; break;
-                    case ADDR_MEMDIR: byte = 0b00010000; break;
+                    case ADDR_MEMDIR: 
+                        if (ins.ins == INS_JMP) byte = 0b00000000;
+                        else byte = 0b00010000;
+                        break;
                     case ADDR_REGINDDISP: byte = 0b00011000 | (op->reg & 0b111); break;
-                    case ADDR_PCREL: byte = 0b00000000; break;
+                    case ADDR_PCREL:
+                        if (ins.ins == INS_JMP) byte = 0b00000000;
+                        else byte = 0b00011000 | 0b00000111;
+                        break;
                     }
 
                     if (op->label[0] == 0) 
