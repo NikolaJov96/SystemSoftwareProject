@@ -322,24 +322,30 @@ int ins_valid_addr(INSTRUCTION ins, ADDRESSING addr, int op_ind)
         if (op_ind > 0 || addr != ADDR_IMM) return 0;
         return 1;
         break;
-    case INS_CMP: 
+    case INS_CMP: case INS_TEST:
         if (op_ind > 1) return 2;
         return 0; 
         break;
-    case INS_TEST:
-        if (op_ind > 1) return 2;
-        return 0;
-        break;
-    case INS_PUSH: case INS_CALL: case INS_JMP:
+    case INS_PUSH:
         if (op_ind > 0) return 2; 
         return 0;
         break;
-    case INS_POP: case INS_IRET:
+    case INS_CALL: 
+        if (op_ind > 0) return 2; 
+        if (addr == ADDR_IMM) return 1;
+        return 0;
+        break;
+    case INS_JMP: 
+        if (op_ind > 0) return 2;
+        if (addr == ADDR_IMM || addr == ADDR_REGINDDISP) return 1;
+        return 0;
+        break;
+    case INS_POP:
         if (op_ind > 0) return 2;
         if (addr == ADDR_IMM) return 1;
         return 0;
         break;
-    case INS_RET: return 2;
+    case INS_IRET: case INS_RET: return 2; break;
     }
 }
 

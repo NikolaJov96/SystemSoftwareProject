@@ -4,7 +4,7 @@
 
 .global chra, chrnl, chrsp
 .data
-        .word stup, timer, 0, key
+        .word stup, timer, invins, key
         .word 0, 0, 0, 0
 
 .text
@@ -20,6 +20,12 @@ timer:  push    r0      ; preserve r0
         add     *16448  r0
         pop     r0
         iret
+
+invins: mov     r0      73
+        mov     *65534  r0
+        or      psw     2048
+        iret
+
 
         ; key pressed routine
 key:    push    r0      ; preserve r0

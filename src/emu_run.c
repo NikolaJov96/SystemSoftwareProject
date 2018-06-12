@@ -198,7 +198,21 @@ void emu_run(Program* prog, int verbose)
                 }
                 if (addr2 != ADDR_REGDIR && addr2 != ADDR_PSW)
                 {
-                    if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW) /* interrupt */ break;
+                    if (addr1 != ADDR_REGDIR && addr1 != ADDR_PSW)
+                    {
+                        uint16_t addr = (cpu_r(cpu, IVT_BAD_INS) & 0xFF) | (cpu_r(cpu, IVT_BAD_INS + 1) << 8);
+                        if (addr != 0)
+                        {
+                            cpu->reg[6] -= 2;
+                            cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+                            cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+                            cpu->reg[6] -= 2;
+                            cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+                            cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+                            cpu->reg[7] = addr;
+                            continue;
+                        }
+                    }
                     arg2_imm = (cpu_r(cpu, cpu->reg[7]) & 0xFF) + (cpu_r(cpu, cpu->reg[7] + 1) << 8);
                     cpu->reg[7] += 2;
 
@@ -216,6 +230,22 @@ void emu_run(Program* prog, int verbose)
                     arg2_val = (cpu_r(cpu, arg2_imm) & 0xFF) + (cpu_r(cpu, arg2_imm + 1) << 8);
                     break;
                 }
+            }
+        }
+
+        if (ins == INS_CALL && addr1 == ADDR_IMM)
+        {
+            uint16_t addr = (cpu_r(cpu, IVT_BAD_INS) & 0xFF) | (cpu_r(cpu, IVT_BAD_INS + 1) << 8);
+            if (addr != 0)
+            {
+                cpu->reg[6] -= 2;
+                cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+                cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+                cpu->reg[6] -= 2;
+                cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+                cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+                cpu->reg[7] = addr;
+                continue;
             }
         }
 
@@ -348,7 +378,21 @@ void emu_run(Program* prog, int verbose)
 
         if (store_res)
         {
-            if (addr1 == ADDR_IMM) break;
+            if (addr1 == ADDR_IMM)
+            {
+                uint16_t addr = (cpu_r(cpu, IVT_BAD_INS) & 0xFF) | (cpu_r(cpu, IVT_BAD_INS + 1) << 8);
+                if (addr != 0)
+                {
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->reg[7] & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->reg[7] >> 8);
+                    cpu->reg[6] -= 2;
+                    cpu_w(cpu, cpu->reg[6], cpu->psw & 0xFF);
+                    cpu_w(cpu, cpu->reg[6] + 1, cpu->psw >> 8);
+                    cpu->reg[7] = addr;
+                    continue;
+                }
+            }
             switch (addr1)
             {
             case ADDR_PSW: cpu->psw = res_val; break;
