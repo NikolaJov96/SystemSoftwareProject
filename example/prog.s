@@ -118,7 +118,8 @@ wait:   cmp     r1      *16448
         movne   *65534  r1
         mov     *65534  r2
 
-.word   0
+        ; halt
+        or      psw     2048
 
 chadd:  mov     r3      5
         add     r3      5

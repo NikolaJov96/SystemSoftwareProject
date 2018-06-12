@@ -58,6 +58,8 @@ void emu_run(Program* prog, int verbose)
         INSTRUCTION ins;
         ADDRESSING addr1, addr2;
 
+        if (cpu_rk(cpu)) break;
+
         if (cpu_rd(cpu)){
             int i;
             printf("(regs: ");
@@ -125,7 +127,6 @@ void emu_run(Program* prog, int verbose)
 
         ins_c1 = cpu_r(cpu, cpu->reg[7]++);
         ins_c2 = cpu_r(cpu, cpu->reg[7]++);
-        if (ins_c1 == 0 && ins_c2 == 0) break;
         
         switch (ins_c1 >> 6)
         {
@@ -473,6 +474,12 @@ int cpu_rt(CPU* cpu)
     return 0;
 }
 
+int cpu_rk(CPU* cpu)
+{
+    if (cpu->psw & (1 << 11)) return 1;
+    return 0;
+}
+
 int cpu_rn(CPU* cpu)
 {
     if (cpu->psw & (1 << 3)) return 1;
@@ -513,6 +520,12 @@ void cpu_wt(CPU* cpu, int t)
 {
     if (t) cpu->psw |= (1 << 13);
     else cpu->psw &= ~(1 << 13);
+}
+
+void cpu_wk(CPU* cpu, int k)
+{
+    if (k) cpu->psw |= (1 << 11);
+    else cpu->psw &= ~(1 << 11);
 }
 
 void cpu_wn(CPU* cpu, int n)

@@ -63,6 +63,7 @@ Program status register is additional 16-bit register:
 - psw1 - overflow flag
 - psw2 - carry flag
 - psw3 - negative flag
+- psw11 - halt flag
 - psw13 - 1s timer interrupt mask
 - psw14 - print debug (registers anmd flags) after each instruction
 - psw15 - global interrupt mask
