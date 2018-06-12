@@ -184,6 +184,7 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
 
                     *start_ind += i + 1;
                     new_op->addr = ADDR_REGINDDISP;
+                    new_op->reg = reg;
                     memcpy(num, str + disp_start, i - disp_start);
                     num[i - disp_start] = 0;
                     new_op->val = atoi(num);
@@ -204,6 +205,7 @@ static InsOp* ins_op_parse(char* line, int* start_ind)
                     new_op = calloc(1, sizeof(InsOp));
                     *start_ind += i + 1;
                     new_op->addr = ADDR_REGINDDISP;
+                    new_op->reg = reg;
                     memcpy(new_op->label, str + disp_start, i - disp_start);
                     new_op->label[i - disp_start] = 0;
                     return new_op;

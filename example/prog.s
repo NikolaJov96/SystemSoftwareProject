@@ -35,22 +35,26 @@ wait:   cmp     r1      *16448
         jmpeq   $wait
         mov     *65534  r2
         
-        ; r0 is 'A', set r1 to 'B', set r2 to '\n'
+        ; r0 is 'A', set r1 to 'B', set r2 to '\n', r4 to ' '
         mov     r1      r0
         add     r1      1
         mov     r2      chrnl
+        mov     r4      chrsp
 
         ; check all instructions
 
         ; check add 1
         call    chadd
+        mov     *65534  r2
 
         ; check sub 2
         call    $chsub
+        mov     *65534  r2
 
         ; check mul 3
         mov     r3      &chmul
         call    r3
+        mov     *65534  r2
 
         ; check div 4
         mov     r3      10
@@ -122,7 +126,37 @@ chadd:  mov     r3      5
         moveq   *65534  r0
         cmp     r3      10
         movne   *65534  r1
-        mov     *65534  r2
+
+        mov     r3      5
+        add     r3      5
+        push    0
+        call    $flagn
+        pop     r3
+        
+        mov     r3      -5
+        add     r3      -5
+        push    1
+        call    $flagn
+        pop     r3
+        
+        mov     r3      32767
+        add     r3      1
+        push    1
+        call    $flago
+        pop     r3
+
+        mov     r3      32767
+        add     r3      10
+        push    0
+        call    $flagc
+        pop     r3
+
+        mov     r3      -1
+        add     r3      1
+        push    1
+        call    $flagc
+        pop     r3
+
         ret
 
 chsub:  mov     r3      -10
@@ -131,7 +165,19 @@ chsub:  mov     r3      -10
         moveq   *65534  r0
         cmp     r3      -5
         movne   *65534  r1
-        mov     *65534  r2
+        
+        mov     r3      30000
+        sub     r3      -30000
+        push    1
+        call    $flagn
+        pop     r3
+
+        mov     r3      30000
+        sub     r3      -30000
+        push    1
+        call    $flagn
+        pop     r3
+
         ret
 
 chmul:  mov     r3      -7
@@ -140,11 +186,53 @@ chmul:  mov     r3      -7
         moveq   *65534  r0
         cmp     r3      21
         movne   *65534  r1
-        mov     *65534  r2
+        ret
+
+; flag chackers
+
+flagn:  mov     r3      psw
+        shr     r3      3
+        and     r3      1
+        mov     r4      r6[2]
+        cmp     r3      r4
+        moveq   *65534  r0 
+        cmp     r3      r4
+        movne   *65534  r1
+        ret
+
+flagc:  mov     r3      psw
+        shr     r3      2
+        and     r3      1
+        mov     r4      r6[2]
+        cmp     r3      r4
+        moveq   *65534  r0 
+        cmp     r3      r4
+        movne   *65534  r1
+        ret
+
+flago:  mov     r3      psw
+        shr     r3      1
+        and     r3      1
+        mov     r4      r6[2]
+        cmp     r3      r4
+        moveq   *65534  r0 
+        cmp     r3      r4
+        movne   *65534  r1
+        ret
+
+flagz:  mov     r3      psw
+        and     r3      1
+        mov     r4      r6[2]
+        cmp     r3      r4
+        moveq   *65534  r0 
+        cmp     r3      r4
+        movne   *65534  r1
         ret
 
 .data
-        ;.align  16
+        ;.align  2
+        ;.skip   1
+        ;.align  2
 chra:   .word   65
 chrsp:  .word   32
 

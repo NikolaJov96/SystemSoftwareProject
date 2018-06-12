@@ -212,7 +212,7 @@ void emu_run(Program* prog, int verbose)
                 case ADDR_MEMDIR: arg2_val = (cpu_r(cpu, arg2_imm) & 0xFF) + (cpu_r(cpu, arg2_imm + 1) << 8); break;
                 case ADDR_REGINDDISP:
                     arg2_imm += cpu->reg[arg2_code & 0b111];
-                    arg2_val = (cpu_r(cpu, arg2_imm) & 0xFF) + (cpu_r(cpu, arg2_imm + 1) << 8); 
+                    arg2_val = (cpu_r(cpu, arg2_imm) & 0xFF) + (cpu_r(cpu, arg2_imm + 1) << 8);
                     break;
                 }
             }
