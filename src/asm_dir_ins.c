@@ -460,11 +460,11 @@ int dir_len(Directive* dir, int curr_offset)
     case DIR_CHAR: len = 1; break;
     case DIR_WORD: len = 2; break;
     case DIR_LONG: len = 4; break;
-    case DIR_ALIGN:  // fix parametriizing by n-th power of 2, cant resolve on asm?
+    case DIR_ALIGN:
         if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;
         skip = (1 << dir->args_head->val);
-        if (curr_offset % dir->args_head->val == 0) return 0;
-        return (curr_offset / dir->args_head->val + 1) * dir->args_head->val - curr_offset;
+        if (curr_offset % skip == 0) return 0;
+        return (curr_offset / skip + 1) * skip - curr_offset;
         break;
     case DIR_SKIP:
         if (dir->num_args != 1 || dir->args_head->label[0] != 0 || dir->args_head->val < 0) return -1;

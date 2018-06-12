@@ -230,9 +230,10 @@ flagz:  mov     r3      psw
         ret
 
 .data
-        ;.align  2
-        ;.skip   1
-        ;.align  2
+        .align  2
+        .char   -1
+        .skip   1
+        .align  2
 chra:   .word   65
 chrsp:  .word   32
 

@@ -78,4 +78,6 @@ Last 128 bytes are reserved for preiferies. Writting to the address 0xFFFE print
 
 ### Assembly language
 
+.align only has effect if assembled with -a option
+
 Nikola Jovanovic

@@ -288,7 +288,7 @@ int main(int argc, char** argv)
             ret = dir_parse(&dir, line);
             if (ret == 0)
             {
-                int dir_args_len = dir_len(&dir, acc_offset);
+                int dir_args_len = dir_len(&dir, (comb_offset == -1 ? 0 : comb_offset + acc_offset));
                 if (dir_args_len == -1)
                 {
                     sprintf(err_line, "Invalid use of directive, line %d : %s", line_num, line);
@@ -310,6 +310,7 @@ int main(int argc, char** argv)
     if (args.verb == ARGS_VERB_VERBOSE) printf("Second pass started.\n");
     input_file = fopen(args.input_file_name, "r");
     line_num = 0;
+    comb_offset = ( args.start_addr != -1 ? args.start_addr : -1 );
     acc_offset = 0;
 
     while (fgets(line, sizeof(line), input_file)) 
@@ -326,6 +327,7 @@ int main(int argc, char** argv)
         sec = parse_section(line);
         if (sec != SEC_NONE)
         {
+            if (comb_offset != -1) comb_offset += acc_offset;
             acc_offset = 0;
             if (sec == SEC_END) break;
             prog_new_seg(prog);
@@ -509,7 +511,7 @@ int main(int argc, char** argv)
                 }
                 else if (dir.dir == DIR_ALIGN || dir.dir == DIR_SKIP)
                 {
-                    int len = dir_len(&dir, acc_offset);
+                    int len = dir_len(&dir, (comb_offset == -1 ? 0 : comb_offset + acc_offset));
                     while (len-- > 0)
                     {
                         prog_add_data(prog, 0);
@@ -529,7 +531,7 @@ int main(int argc, char** argv)
                         }
                         else if (dir.dir == DIR_WORD)
                         {
-                            if (!prog_add_rel(prog, acc_offset + 2 * i, REL_16, arg->label))
+                            if (!prog_add_rel(prog, comb_offset + 2 * i + acc_offset, REL_16, arg->label))
                             {
                                 sprintf(err_line, "Unknown label '%s', line %d : %s", arg->label, line_num, line);
                                 exit_prog(args.verb, input_file);
@@ -545,7 +547,7 @@ int main(int argc, char** argv)
                     }
                 }
 
-                acc_offset += dir_len(&dir, acc_offset);
+                acc_offset += dir_len(&dir, (comb_offset == -1 ? 0 : comb_offset + acc_offset));
             }
             dir_arg_free(&dir);
         }
