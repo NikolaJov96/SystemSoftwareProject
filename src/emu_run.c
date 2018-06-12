@@ -318,7 +318,7 @@ void emu_run(Program* prog, int verbose)
             store_res = 1;
             break;
         case INS_SHL:
-            res_val = arg1_val << arg2_val;
+            res_val = arg1_val << ((uint16_t)arg2_val);
             if (arg2_val == 0 || arg2_val > 15) cpu_wc(cpu, 0);
             else if (arg1_val & (1 << (16 - arg2_val))) cpu_wc(cpu, 1);
             else cpu_wc(cpu, 0);
@@ -326,7 +326,7 @@ void emu_run(Program* prog, int verbose)
             store_res = 1;
             break;
         case INS_SHR:
-            res_val = arg1_val >> arg2_val;
+            res_val = arg1_val >> ((uint16_t)arg2_val);
             if (arg2_val == 0 || arg2_val > 15) cpu_wc(cpu, 0);
             else if (arg1_val & (1 << (arg2_val - 1))) cpu_wc(cpu, 1);
             else cpu_wc(cpu, 0);
