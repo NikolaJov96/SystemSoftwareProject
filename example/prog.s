@@ -1,16 +1,19 @@
 ; Main loop - Printing chars and testing instructions
 ; Example assembly command from root folder:
-;   /asm -v -a 1024 example/prog.s example/prog.o
+;   ./asm -v -a 1024 example/prog.s example/prog.o
 ; After assembling all three example files link theum using for example:
-;   ./emu -vr -b example/prog1 -l example/prog1.o example/prog.o example/prog_d.o example/prog_startup.o
+;   ./emu -vr -b example/prog1 -l example/prog1.o example/prog.o example/prog_d.o example/prog_startup.o example/prog_num.o
 
 ; Debug enable/disable command:         
 ;       or      psw     16384
 ;       and     psw     -16385
 
-.global start, numc, chra, chrsp, chrnl
+.global start, numc, chra, chrsp, chrnl, prnum
 .text
-start: 
+start:  ; print number FEDC
+        push    65244
+        call    prnum
+        pop     r5
         ; loop
 loop:   mov     *65534  r0
         push    r0
