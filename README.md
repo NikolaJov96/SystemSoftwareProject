@@ -147,7 +147,7 @@ Language description:
 - Additional available directives:
   - .char - fills one byte with the explicit argument number
   - .word - fills two bytes with the explicit argument number or argument label address
-  - .long - fills two bytes with the explicit argument number
+  - .long - fills four bytes with the explicit argument number
   - .align - inserts zero bytes until absolute address dividable by the 2^argument is reached, has effect only if starting address is specified
   - .skip - inserts argument number of zero bytes
 - Directives can have multiple arguments separated by comma
