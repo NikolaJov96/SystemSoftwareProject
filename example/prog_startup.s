@@ -34,7 +34,6 @@ key:    push    r0      ; preserve r0
         mov     *65534  r0
         ; print caps pressed char
         mov     r0      *65532
-        sub     r0      chrnl
         mov     *65534  r0
         pop     r0
         iret
