@@ -29,7 +29,7 @@ invins: mov     r0      73
 
         ; key pressed routine
 key:    push    r0      ; preserve r0
-        ; print new line
+        ; print space
         mov     r0      chrsp
         mov     *65534  r0
         ; print caps pressed char
