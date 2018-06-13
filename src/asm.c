@@ -111,17 +111,6 @@ int main(int argc, char** argv)
     int section_used[6] = { 1, 0, 0, 0, 0, 0 };
 
     parse_args(argc, argv, &args);
-    
-    {
-        printf("verb mode: ");
-        switch (args.verb)
-        {
-        case ARGS_VERB_SILENT: printf("silent\n"); break;
-        case ARGS_VERB_NORMAL: printf("normal\n"); break;
-        case ARGS_VERB_VERBOSE: printf("verbose\n"); break;
-        }
-        printf("in file: %s\nout file %s\n", args.input_file_name, args.output_file_name);
-    }
 
     input_file = fopen(args.input_file_name, "r");
     if (!input_file)
