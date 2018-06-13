@@ -38,3 +38,5 @@ fend:   mov     *65534  r1
 
 .rodata
 zero:   .word 48
+
+.end
