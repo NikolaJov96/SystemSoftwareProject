@@ -520,7 +520,7 @@ int main(int argc, char** argv)
                         }
                         else if (dir.dir == DIR_WORD)
                         {
-                            if (!prog_add_rel(prog, comb_offset + 2 * i + acc_offset, REL_16, arg->label))
+                            if (!prog_add_rel(prog, acc_offset + 2 * i, REL_16, arg->label))
                             {
                                 sprintf(err_line, "Unknown label '%s', line %d : %s", arg->label, line_num, line);
                                 exit_prog(args.verb, input_file);
