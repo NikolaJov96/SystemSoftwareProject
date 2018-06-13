@@ -464,7 +464,7 @@ PROG_RET prog_load(Program* prog, LOAD_MODE mode, void* arg)
     {
         int ind = 0;
         if (line[ind++] != '.') return PROG_ERT_INVALID_PROGRAM;
-        while (line[ind] && line[ind] != '\n')
+        while (line[ind] && line[ind] != '\n' && line[ind] && line[ind] != '\r')
         {
             if (line[ind] < 'a' || line[ind] > 'z') return PROG_ERT_INVALID_PROGRAM;
             ind++;
@@ -488,7 +488,7 @@ PROG_RET prog_load(Program* prog, LOAD_MODE mode, void* arg)
                 strcpy(line, line_arr[line_arr_ind++]);
             }
             if (sscanf(line, "%x %d %d%c", &offset, &rel, &sym_id, &end) != 4) break;
-            if (end != '\n') break;
+            if (end != '\n' && end != '\r') break;
 
             new_rel = malloc(sizeof(RelListNode));
             new_rel->offset = offset;

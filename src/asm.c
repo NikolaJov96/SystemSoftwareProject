@@ -16,6 +16,7 @@ void preprocess_line(char* line)
     if (len == 0) return;
 
     if (line[len - 1] == '\n') line[--len] = 0;
+    if (len > 0 && line[len - 1] == '\r') line[--len] = 0;
     for (i = 0; i < len; i++) if (line[i] == '\t') line[i] = ' ';
     
     acc = 0;
