@@ -266,6 +266,11 @@ int ins_parse(Instruction* ins, char* line)
 {
     int ind = 0, ret;
     if (!ins) return 1;
+    ins->cond = 0;
+    ins->ins = 0;
+    ins->ops_head = 0;
+    ins->ops_tail = 0;
+    ins->num_ops = 0;
 
     if      (ret = starts_with(line, "add",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_ADD;
     else if (ret = starts_with(line, "sub",  &ind, 5, " ", "eq ", "ne ", "gt ", "al ")) ins->ins = INS_SUB;
