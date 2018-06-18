@@ -27,6 +27,7 @@ emu: $(EMU_OBJ)
 	mkdir -p $(ODIR)
 	$(CC) -o $@ $^
 
+.PHONY: example
 example: example/prog_startup.s example/prog.s example/prog_d.s example/prog_num.s
 	./asm -a 0 example/prog_startup.s example/prog_startup.o
 	./asm -a 1024 example/prog.s example/prog.o
