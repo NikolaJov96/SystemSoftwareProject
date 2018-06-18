@@ -27,6 +27,13 @@ emu: $(EMU_OBJ)
 	mkdir -p $(ODIR)
 	$(CC) -o $@ $^
 
+example: example/prog_startup.s example/prog.s example/prog_d.s example/prog_num.s
+	./asm -a 0 example/prog_startup.s example/prog_startup.o
+	./asm -a 1024 example/prog.s example/prog.o
+	./asm -a 2048 example/prog_d.s example/prog_d.o
+	./asm -a 3072 example/prog_num.s example/prog_num.o
+	./emu -b example/prog1 -l example/prog1.o example/prog.o example/prog_d.o example/prog_startup.o example/prog_num.o
+
 $(ODIR)/asm.o: $(SDIR)/asm.c $(ASM_DEPS)
 	mkdir -p $(ODIR)
 	$(CC) -c -o $@ $<

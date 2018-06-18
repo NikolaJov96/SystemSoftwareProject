@@ -6,9 +6,13 @@ Assembler and emulator for hypothetical machine
 
 ### Installation
 
-Just run make inside the project root folder.
+Just run make inside the project root folder. You can explicitly make asm or emu, clean object files, or make the assembler example program.
 ```console
 make
+make asm
+make emu
+make clean
+make example
 ```
 
 ### Assembler

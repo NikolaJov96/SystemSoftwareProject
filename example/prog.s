@@ -1,7 +1,7 @@
 ; Main loop - Printing chars and testing instructions
 ; Example assembly command from root folder:
 ;   ./asm -v -a 1024 example/prog.s example/prog.o
-; After assembling all three example files link theum using for example:
+; After assembling all four example files link theum using for example:
 ;   ./emu -vr -b example/prog1 -l example/prog1.o example/prog.o example/prog_d.o example/prog_startup.o example/prog_num.o
 
 ; Debug enable/disable command:         
