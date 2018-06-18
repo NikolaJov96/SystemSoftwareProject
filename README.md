@@ -7,6 +7,7 @@ Assembler and emulator for hypothetical machine
 ### Installation
 
 Just run make inside the project root folder. You can explicitly make asm or emu, clean object files, or make the assembler example program.
+
 ```console
 make
 make asm
@@ -14,7 +15,10 @@ make emu
 make clean
 make example
 ```
+
 Making example program will generate object files for each file with the code, object file of the linked program and program executable.
+
+Note: Project cannot be compiled on Windows machines because of use of argp GNU specific library for parsing command line arguments.
 
 ### Assembler
 
